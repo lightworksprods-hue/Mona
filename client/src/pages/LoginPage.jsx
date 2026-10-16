@@ -44,6 +44,17 @@ export default function LoginPage() {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <img
+            src="/mona-removebg-preview.png"
+            alt="Mona's Grocery Store logo"
+            style={{
+              width: '92px',
+              height: '92px',
+              objectFit: 'contain',
+              display: 'block',
+              margin: '0 auto 10px',
+            }}
+          />
           <h1
             style={{
               fontSize: '22px',
@@ -52,10 +63,10 @@ export default function LoginPage() {
               marginBottom: '4px',
             }}
           >
-            Counter POS System
+            Mona's Grocery Store
           </h1>
           <p style={{ color: 'var(--secondary-text)', fontSize: '13px' }}>
-            Cashier Station & Point of Sale Terminal
+            Grocery Store Point of Sale
           </p>
         </div>
 
@@ -104,7 +115,7 @@ export default function LoginPage() {
             style={{ width: '100%', marginTop: '12px', padding: '12px', fontSize: '15px' }}
             disabled={isLoading}
           >
-            {isLoading ? 'Authenticating...' : 'Sign In to POS'}
+            {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 

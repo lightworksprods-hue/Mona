@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onToggleTheme }) {
+export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onToggleTheme, canUsePOS = true }) {
   const { user, logout, isAdmin } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -67,8 +67,10 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
           id="nav-pos"
           className={`nav-tab ${activeTab === 'pos' ? 'active' : ''}`}
           onClick={() => setActiveTab('pos')}
+          disabled={!canUsePOS}
+          title={canUsePOS ? 'Open Counter POS' : 'Open the cash drawer before using the POS'}
         >
-          Counter POS
+          Counter POS{!canUsePOS ? ' (Open drawer first)' : ''}
         </button>
 
         {isAdmin && (

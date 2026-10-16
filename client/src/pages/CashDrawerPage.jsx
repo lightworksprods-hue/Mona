@@ -4,7 +4,7 @@ import { formatCurrency, formatDateTime } from '../utils/formatters';
 
 const numberValue = (value) => Number(value || 0);
 
-export default function CashDrawerPage() {
+export default function CashDrawerPage({ onSessionChange }) {
   const [summary, setSummary] = useState(null);
   const [history, setHistory] = useState([]);
   const [openingCash, setOpeningCash] = useState('');
@@ -25,6 +25,7 @@ export default function CashDrawerPage() {
         api.getCashHistory(),
       ]);
       setSummary(currentResponse.data);
+      onSessionChange?.(Boolean(currentResponse.data?.session));
       setHistory(historyResponse.data || []);
     } catch (error) {
       setMessage({ type: 'error', text: error.message || 'Unable to load cash drawer data.' });

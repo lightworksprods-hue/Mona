@@ -22,14 +22,20 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health Check
-app.get('/api/health', (req, res) => {
-  res.json({
+// Lightweight health checks for Render and Better Stack. These intentionally
+// do not query the database so monitoring can distinguish app uptime from DB health.
+const healthCheck = (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.status(200).json({
     status: 'ok',
-    message: 'Counter POS System API is online',
+    service: 'mona-pos-api',
+    uptime: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
   });
-});
+};
+
+app.get('/health', healthCheck);
+app.get('/api/health', healthCheck);
 
 // Mount Routes
 app.use('/api/auth', authRoutes);

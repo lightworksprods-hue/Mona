@@ -25,6 +25,7 @@ import {
 export default function App() {
   const { user, loading, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState('pos');
+  const [cashDrawerOpen, setCashDrawerOpen] = useState(null);
   const [storeInfo, setStoreInfo] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('mona-theme') || 'light');
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
@@ -44,6 +45,29 @@ export default function App() {
       loadStoreSettings();
     }
   }, [user]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!user || isAdmin) {
+      setCashDrawerOpen(isAdmin ? true : null);
+      return undefined;
+    }
+
+    api.getCashCurrent()
+      .then((response) => {
+        if (!cancelled) setCashDrawerOpen(Boolean(response.data?.session));
+      })
+      .catch(() => {
+        if (!cancelled) setCashDrawerOpen(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [user, isAdmin]);
+
+  useEffect(() => {
+    if (user && !isAdmin && cashDrawerOpen === false) setActiveTab('cash');
+  }, [user, isAdmin, cashDrawerOpen]);
 
   useEffect(() => {
     const updateOnlineStatus = () => setIsOnline(navigator.onLine);
@@ -130,6 +154,7 @@ export default function App() {
         storeInfo={storeInfo}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        canUsePOS={isAdmin || cashDrawerOpen === true}
         theme={theme}
         onToggleTheme={() => setTheme((current) => current === 'light' ? 'dark' : 'light')}
       />
@@ -142,11 +167,11 @@ export default function App() {
           </div>
         )}
         <Suspense fallback={<div className="page-state">Loading page...</div>}>
-          {activeTab === 'pos' && <CounterPOSPage storeInfo={storeInfo} />}
+          {activeTab === 'pos' && (isAdmin || cashDrawerOpen === true) && <CounterPOSPage storeInfo={storeInfo} />}
           {activeTab === 'products' && isAdmin && <ProductsPage />}
           {activeTab === 'inventory' && isAdmin && <InventoryPage />}
           {activeTab === 'transactions' && <TransactionsPage storeInfo={storeInfo} />}
-          {activeTab === 'cash' && <CashDrawerPage />}
+          {activeTab === 'cash' && <CashDrawerPage onSessionChange={setCashDrawerOpen} />}
           {activeTab === 'reports' && isAdmin && <ReportsPage />}
           {activeTab === 'settings' && isAdmin && (
             <SettingsPage storeInfo={storeInfo} onStoreUpdate={setStoreInfo} />

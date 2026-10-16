@@ -10,6 +10,7 @@ exports.checkout = async (req, res, next) => {
 
     const sale = await processCheckout({
       cashierId: req.user.id,
+      userRole: req.user.role,
       items,
       orderDiscount,
       paymentMethod,

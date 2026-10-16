@@ -6,6 +6,7 @@ const { createAuditLog } = require('./auditService');
  * Atomic checkout transaction
  * @param {Object} params
  * @param {string} params.cashierId - Cashier user ID
+ * @param {string} params.userRole - Authenticated user's role
  * @param {Array<{productId: string, quantity: number, discount?: number}>} params.items
  * @param {number} params.orderDiscount - Overall sale discount
  * @param {string} params.paymentMethod - CASH | GCASH | MAYA | OTHER
@@ -16,6 +17,7 @@ const { createAuditLog } = require('./auditService');
  */
 async function processCheckout({
   cashierId,
+  userRole,
   items,
   orderDiscount = 0,
   paymentMethod = 'CASH',
@@ -39,6 +41,21 @@ async function processCheckout({
       },
     });
     if (existingSale) return existingSale;
+  }
+
+  if (userRole !== 'ADMIN') {
+    const openDrawer = await prisma.cashSession.findFirst({
+      where: { cashierId, status: 'OPEN' },
+      select: { id: true },
+    });
+
+    if (!openDrawer) {
+      throw {
+        status: 409,
+        code: 'CASH_DRAWER_REQUIRED',
+        message: 'Open your cash drawer before processing a sale.',
+      };
+    }
   }
 
   // 1. Fetch store settings for global taxRate if applicable
