@@ -142,6 +142,10 @@ export default function CounterPOSPage({ storeInfo }) {
     return ['kg', 'kilogram', 'kilograms'].includes(unit) || category === 'meat & poultry';
   };
 
+  const maxPaidQuantity = (product) => product?.buyOneTakeOne
+    ? Math.floor(Number(product.stockQuantity) / 2)
+    : Number(product?.stockQuantity || 0);
+
   // Products sold by weight ask the cashier for kilograms before adding to the cart.
   const addProductToCart = (product) => {
     if (isWeightProduct(product)) {
@@ -165,7 +169,7 @@ export default function CounterPOSPage({ storeInfo }) {
         const currentQty = updated[existingIndex].quantity;
         const newQty = Number((currentQty + quantityToAdd).toFixed(3));
 
-        if (Number(product.stockQuantity) < newQty) {
+        if (maxPaidQuantity(product) < newQty) {
           setErrorMessage(`Cannot add more. "${product.name}" only has ${product.stockQuantity} in stock.`);
           return prevCart;
         }
@@ -177,7 +181,7 @@ export default function CounterPOSPage({ storeInfo }) {
         };
         return updated;
       } else {
-        if (Number(product.stockQuantity) < quantityToAdd) {
+        if (maxPaidQuantity(product) < quantityToAdd) {
           setErrorMessage(`Product "${product.name}" is currently out of stock.`);
           return prevCart;
         }
@@ -205,7 +209,7 @@ export default function CounterPOSPage({ storeInfo }) {
     setCart((prevCart) =>
       prevCart.map((item) => {
         if (item.product.id === productId) {
-          if (Number(item.product.stockQuantity) < qty) {
+          if (maxPaidQuantity(item.product) < qty) {
             setErrorMessage(`Maximum stock for "${item.product.name}" is ${item.product.stockQuantity}.`);
             return item;
           }
@@ -425,12 +429,12 @@ export default function CounterPOSPage({ storeInfo }) {
                 key={product.id}
                 className="product-card"
                 onClick={() => addProductToCart(product)}
-                disabled={product.stockQuantity < 1}
+                disabled={maxPaidQuantity(product) < 1}
               >
-                <strong>{product.name}</strong>
+                <strong>{product.name} {product.buyOneTakeOne && <span className="promotion-badge">BUY 1 TAKE 1</span>}</strong>
                 <span>{product.sku}</span>
                 <b>{formatCurrency(product.sellingPrice)}</b>
-                <small>{product.stockQuantity > 0 ? `Stock: ${product.stockQuantity}` : 'Out of stock'}</small>
+                <small>{maxPaidQuantity(product) > 0 ? `Stock: ${product.stockQuantity}${product.buyOneTakeOne ? ' (Buy 1 Take 1)' : ''}` : 'Out of stock'}</small>
               </button>
             ))}
             {filteredCatalogProducts.length === 0 && (
@@ -481,9 +485,9 @@ export default function CounterPOSPage({ storeInfo }) {
                 {cart.map((item) => (
                   <tr key={item.product.id}>
                     <td>
-                      <div style={{ fontWeight: '600' }}>{item.product.name}</div>
+                      <div style={{ fontWeight: '600' }}>{item.product.name} {item.product.buyOneTakeOne && <span className="promotion-badge">BUY 1 TAKE 1</span>}</div>
                       <div style={{ fontSize: '11px', color: 'var(--secondary-text)' }}>
-                        Unit: {item.product.unit} | Stock: {item.product.stockQuantity}
+                        Unit: {item.product.unit} | Stock: {item.product.stockQuantity}{item.product.buyOneTakeOne ? ` | Free units: ${item.quantity}` : ''}
                       </div>
                     </td>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
@@ -507,7 +511,7 @@ export default function CounterPOSPage({ storeInfo }) {
                           className="qty-input"
                           min={isWeightProduct(item.product) ? '0.001' : '1'}
                           step={isWeightProduct(item.product) ? '0.001' : '1'}
-                          max={item.product.stockQuantity}
+                          max={maxPaidQuantity(item.product)}
                           value={quantityDrafts[item.product.id] ?? item.quantity}
                           onChange={(event) => handleQuantityInput(item.product.id, event.target.value)}
                           onBlur={() => commitQuantityInput(item.product.id)}
@@ -564,7 +568,7 @@ export default function CounterPOSPage({ storeInfo }) {
 
           <div className="summary-row">
             <span>Order Discount:</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div className="summary-discount-control">
               <span>₱</span>
               <input
                 id="input-order-discount"

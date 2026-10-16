@@ -21,6 +21,9 @@ async function main() {
     `CREATE INDEX IF NOT EXISTS "customers_phone_idx" ON "customers" ("phone")`,
     `ALTER TABLE "store_settings" ADD COLUMN IF NOT EXISTS "loyaltyPointsPerHundred" DECIMAL(8,2) NOT NULL DEFAULT 1.00`,
     `ALTER TABLE "store_settings" ADD COLUMN IF NOT EXISTS "receiptPaperWidth" TEXT NOT NULL DEFAULT '80mm'`,
+    `ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "buyOneTakeOne" BOOLEAN NOT NULL DEFAULT FALSE`,
+    `ALTER TABLE "sale_items" ADD COLUMN IF NOT EXISTS "freeQuantity" DECIMAL(12,3) NOT NULL DEFAULT 0`,
+    `ALTER TABLE "sale_items" ADD COLUMN IF NOT EXISTS "stockQuantity" DECIMAL(12,3) NOT NULL DEFAULT 0`,
     `ALTER TABLE "sales" ADD COLUMN IF NOT EXISTS "customerId" TEXT`,
     `CREATE INDEX IF NOT EXISTS "sales_customerId_idx" ON "sales" ("customerId")`,
     `CREATE TABLE IF NOT EXISTS "loyalty_transactions" (

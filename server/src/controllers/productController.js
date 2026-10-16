@@ -58,6 +58,7 @@ exports.getProducts = async (req, res, next) => {
               sellingPrice: true,
               stockQuantity: true,
               unit: true,
+              buyOneTakeOne: true,
               isActive: true,
               category: { select: { id: true, name: true } },
             },
@@ -157,6 +158,7 @@ exports.createProduct = async (req, res, next) => {
       minStockLevel = 5,
       unit = 'pcs',
       taxRate = 0,
+      buyOneTakeOne = false,
       isActive = true,
     } = req.body;
 
@@ -183,6 +185,7 @@ exports.createProduct = async (req, res, next) => {
         minStockLevel: parseFloat(minStockLevel) || 5,
         unit,
         taxRate: parseFloat(taxRate) || 0,
+        buyOneTakeOne: Boolean(buyOneTakeOne),
         isActive: Boolean(isActive),
       },
       include: {
@@ -238,6 +241,7 @@ exports.updateProduct = async (req, res, next) => {
       minStockLevel,
       unit,
       taxRate,
+      buyOneTakeOne,
       isActive,
     } = req.body;
 
@@ -271,6 +275,7 @@ exports.updateProduct = async (req, res, next) => {
     if (minStockLevel !== undefined) data.minStockLevel = parseFloat(minStockLevel);
     if (unit !== undefined) data.unit = unit;
     if (taxRate !== undefined) data.taxRate = parseFloat(taxRate);
+    if (buyOneTakeOne !== undefined) data.buyOneTakeOne = Boolean(buyOneTakeOne);
     if (isActive !== undefined) data.isActive = Boolean(isActive);
 
     const updated = await prisma.product.update({

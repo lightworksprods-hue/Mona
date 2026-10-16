@@ -105,10 +105,12 @@ async function processCheckout({
       throw { status: 400, message: `Invalid quantity for product "${product.name}". Must be greater than zero.` };
     }
 
-    if (Number(product.stockQuantity) < qty) {
+    const freeQuantity = product.buyOneTakeOne ? qty : 0;
+    const stockQuantity = qty + freeQuantity;
+    if (Number(product.stockQuantity) < stockQuantity) {
       throw {
         status: 400,
-        message: `Insufficient stock for "${product.name}". Available: ${product.stockQuantity}, Requested: ${qty}`,
+        message: `Insufficient stock for "${product.name}". Available: ${product.stockQuantity}, Required: ${stockQuantity}`,
       };
     }
 
@@ -127,6 +129,8 @@ async function processCheckout({
     validatedItems.push({
       product,
       quantity: qty,
+      freeQuantity,
+      stockQuantity,
       unitPrice,
       costPrice,
       discount: itemDiscount,
@@ -189,9 +193,9 @@ async function processCheckout({
       const updatedCount = await tx.product.updateMany({
         where: {
           id: item.product.id,
-          stockQuantity: { gte: item.quantity },
+          stockQuantity: { gte: item.stockQuantity },
         },
-        data: { stockQuantity: { decrement: item.quantity } },
+        data: { stockQuantity: { decrement: item.stockQuantity } },
       });
 
       if (updatedCount.count !== 1) {
@@ -214,7 +218,7 @@ async function processCheckout({
         data: {
           productId: item.product.id,
           type: 'SALE',
-          quantity: -item.quantity,
+          quantity: -item.stockQuantity,
           balanceAfter: updatedProduct.stockQuantity,
           reason: `Sale ${transactionNumber}`,
           userId: cashierId,
@@ -249,6 +253,8 @@ async function processCheckout({
             unitPrice: vi.unitPrice,
             costPrice: vi.costPrice,
             quantity: vi.quantity,
+            freeQuantity: vi.freeQuantity,
+            stockQuantity: vi.stockQuantity,
             discount: vi.discount,
             lineTotal: vi.lineTotal,
           })),

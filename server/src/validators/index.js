@@ -30,6 +30,7 @@ const productValidator = [
   body('minStockLevel').optional().isFloat({ min: 0 }).withMessage('Minimum stock level must be a non-negative number'),
   body('unit').optional().trim(),
   body('categoryId').optional({ nullable: true }),
+  body('buyOneTakeOne').optional().isBoolean().withMessage('Buy 1 Take 1 must be boolean'),
 ];
 
 const checkoutValidator = [

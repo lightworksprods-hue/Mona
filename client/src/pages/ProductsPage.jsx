@@ -61,6 +61,7 @@ export default function ProductsPage() {
     stockQuantity: '',
     minStockLevel: '5',
     unit: 'pcs',
+    buyOneTakeOne: false,
     description: '',
     isActive: true,
   });
@@ -114,6 +115,7 @@ export default function ProductsPage() {
       stockQuantity: '0',
       minStockLevel: '5',
       unit: 'pcs',
+      buyOneTakeOne: false,
       description: '',
       isActive: true,
     });
@@ -132,6 +134,7 @@ export default function ProductsPage() {
       stockQuantity: p.stockQuantity.toString(),
       minStockLevel: p.minStockLevel.toString(),
       unit: p.unit || 'pcs',
+      buyOneTakeOne: Boolean(p.buyOneTakeOne),
       description: p.description || '',
       isActive: p.isActive,
     });
@@ -466,6 +469,18 @@ export default function ProductsPage() {
                   />
                   <label htmlFor="isActiveCheckbox" className="field-label" style={{ marginBottom: 0 }}>
                     Active Product (Available for Cashier Scanning)
+                  </label>
+                </div>
+
+                <div className="form-group promotion-toggle">
+                  <input
+                    type="checkbox"
+                    id="buyOneTakeOneCheckbox"
+                    checked={formData.buyOneTakeOne}
+                    onChange={(e) => setFormData({ ...formData, buyOneTakeOne: e.target.checked })}
+                  />
+                  <label htmlFor="buyOneTakeOneCheckbox" className="field-label" style={{ marginBottom: 0 }}>
+                    Buy 1 Take 1 promotion (deducts 2 units of stock for every 1 paid)
                   </label>
                 </div>
               </div>
