@@ -11,7 +11,7 @@ function normalizePhone(phone) {
  * @param {Object} params
  * @param {string} params.cashierId - Cashier user ID
  * @param {string} params.userRole - Authenticated user's role
- * @param {Array<{productId: string, quantity: number, discount?: number}>} params.items
+ * @param {Array<{productId: string, quantity: number, discount?: number, loyaltyRewardId?: string}>} params.items
  * @param {number} params.orderDiscount - Overall sale discount
  * @param {string} params.paymentMethod - CASH | GCASH | MAYA | OTHER
  * @param {number} params.amountTendered - Amount given by customer
@@ -86,6 +86,12 @@ async function processCheckout({
   const productMap = new Map();
   products.forEach((p) => productMap.set(p.id, p));
 
+  const rewardIds = items.map((item) => item.loyaltyRewardId).filter(Boolean);
+  const rewards = rewardIds.length > 0
+    ? await prisma.loyaltyReward.findMany({ where: { id: { in: rewardIds } }, include: { product: true } })
+    : [];
+  const rewardMap = new Map(rewards.map((reward) => [reward.id, reward]));
+
   // 3. Pre-validate products: existence, active state, stock availability
   const validatedItems = [];
   let calculatedSubtotal = 0;
@@ -105,7 +111,15 @@ async function processCheckout({
       throw { status: 400, message: `Invalid quantity for product "${product.name}". Must be greater than zero.` };
     }
 
-    const freeQuantity = product.buyOneTakeOne ? qty : 0;
+    const reward = cartItem.loyaltyRewardId ? rewardMap.get(cartItem.loyaltyRewardId) : null;
+    if (cartItem.loyaltyRewardId && (!reward || !reward.isActive || reward.productId !== product.id)) {
+      throw { status: 400, message: `Invalid loyalty reward for "${product.name}".` };
+    }
+    if (reward && (!normalizedCustomerPhone || qty !== 1)) {
+      throw { status: 400, message: 'A loyalty reward requires a customer phone number and quantity of one.' };
+    }
+
+    const freeQuantity = reward ? 0 : (product.buyOneTakeOne ? qty : 0);
     const stockQuantity = qty + freeQuantity;
     if (Number(product.stockQuantity) < stockQuantity) {
       throw {
@@ -114,9 +128,9 @@ async function processCheckout({
       };
     }
 
-    const unitPrice = Number(product.sellingPrice);
+    const unitPrice = reward ? 0 : Number(product.sellingPrice);
     const costPrice = Number(product.costPrice);
-    const itemDiscount = roundMoney(Number(cartItem.discount || 0));
+    const itemDiscount = reward ? 0 : roundMoney(Number(cartItem.discount || 0));
     const lineTotal = roundMoney(unitPrice * qty - itemDiscount);
 
     if (lineTotal < 0) {
@@ -135,6 +149,7 @@ async function processCheckout({
       costPrice,
       discount: itemDiscount,
       lineTotal,
+      reward,
     });
   }
 
@@ -186,6 +201,25 @@ async function processCheckout({
           fullName: customerName ? String(customerName).trim().slice(0, 100) : null,
         },
       });
+    }
+
+    const rewardItems = validatedItems.filter((item) => item.reward);
+    const rewardPoints = rewardItems.reduce((sum, item) => sum + item.reward.pointsCost, 0);
+    if (rewardItems.length > 0) {
+      if (!customer) throw { status: 400, message: 'A customer phone number is required to redeem points.' };
+      const updatedCustomer = await tx.customer.updateMany({
+        where: { id: customer.id, pointsBalance: { gte: rewardPoints } },
+        data: { pointsBalance: { decrement: rewardPoints } },
+      });
+      if (updatedCustomer.count !== 1) throw { status: 400, message: 'Customer does not have enough points.' };
+      for (const item of rewardItems) {
+        await tx.loyaltyTransaction.create({
+          data: { customerId: customer.id, type: 'REDEEM', points: -item.reward.pointsCost, note: `Redeemed ${item.product.name}` },
+        });
+        await tx.loyaltyRedemption.create({
+          data: { customerId: customer.id, rewardId: item.reward.id, pointsSpent: item.reward.pointsCost },
+        });
+      }
     }
 
     // Re-check and atomically deduct stock for all items
@@ -304,7 +338,7 @@ async function processCheckout({
       sale.loyaltyPointsEarned = loyaltyPoints;
       sale.customer = {
         ...sale.customer,
-        pointsBalance: Number(customer.pointsBalance) + loyaltyPoints,
+        pointsBalance: Number(customer.pointsBalance) - rewardPoints + loyaltyPoints,
       };
     }
 

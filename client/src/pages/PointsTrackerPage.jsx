@@ -9,6 +9,7 @@ export default function PointsTrackerPage() {
   const [phone, setPhone] = useState('');
   const [result, setResult] = useState(null);
   const [rewards, setRewards] = useState([]);
+  const [showRewards, setShowRewards] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -30,6 +31,7 @@ export default function PointsTrackerPage() {
       const response = await api.lookupCustomerPoints(normalizedPhone);
       setResult(response.data);
       setRewards(response.rewards || []);
+      setShowRewards(false);
       setHasChecked(true);
     } catch (error) {
       setErrorMessage(error.message || 'Unable to check points right now.');
@@ -78,16 +80,23 @@ export default function PointsTrackerPage() {
 
         {hasChecked && rewards.length > 0 && (
           <div className="points-tracker-rewards">
-            <h2>Available rewards</h2>
-            {rewards.map((reward) => (
-              <div className="points-tracker-reward" key={reward.id}>
-                <div>
-                  <div className="points-tracker-reward-name">{reward.product.name}</div>
-                  <div className="points-tracker-reward-meta">{Number(reward.product.stockQuantity || 0) > 0 ? 'Available in store' : 'Currently out of stock'}</div>
-                </div>
-                <span className="customer-points-badge">{reward.pointsCost} pts</span>
+            <button type="button" className="btn btn-secondary points-tracker-rewards-toggle" onClick={() => setShowRewards((visible) => !visible)}>
+              {showRewards ? 'Hide available rewards' : 'Show available rewards'}
+            </button>
+            {showRewards && (
+              <div className="points-tracker-rewards-list">
+                <h2>Available rewards</h2>
+                {rewards.map((reward) => (
+                  <div className="points-tracker-reward" key={reward.id}>
+                    <div>
+                      <div className="points-tracker-reward-name">{reward.product.name}</div>
+                      <div className="points-tracker-reward-meta">{Number(reward.product.stockQuantity || 0) > 0 ? 'Available in store' : 'Currently out of stock'}</div>
+                    </div>
+                    <span className="customer-points-badge">{reward.pointsCost} pts</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         )}
 

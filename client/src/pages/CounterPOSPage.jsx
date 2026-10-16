@@ -90,15 +90,24 @@ export default function CounterPOSPage({ storeInfo }) {
     setErrorMessage('');
     try {
       const response = await api.redeemLoyaltyReward({ phone: customerPhone.trim(), rewardId: selectedRewardId });
-      setLoyaltyCustomer((current) => ({
-        ...current,
-        pointsBalance: Number(current.pointsBalance) - Number(response.data.pointsSpent),
-      }));
-      setCustomerRewards((current) => current.map((reward) => reward.id === selectedRewardId
-        ? { ...reward, product: { ...reward.product, stockQuantity: Number(reward.product.stockQuantity) - 1 } }
-        : reward));
+      const rewardProduct = { ...response.data.product, isLoyaltyReward: true };
+      setCart((current) => {
+        if (current.some((item) => item.product.id === rewardProduct.id)) {
+          setErrorMessage('Remove the regular item from the cart before adding it as a points reward.');
+          return current;
+        }
+        return [...current, {
+          product: rewardProduct,
+          quantity: 1,
+          unitPrice: 0,
+          discount: 0,
+          lineTotal: 0,
+          loyaltyRewardId: response.data.rewardId,
+          isReward: true,
+        }];
+      });
       setSelectedRewardId('');
-      setCustomerLookupMessage(`Reward redeemed. ${Number(response.data.pointsSpent)} points spent.`);
+      setCustomerLookupMessage(`${rewardProduct.name} added to the cart. Points will be deducted after checkout.`);
     } catch (error) {
       setErrorMessage(error.message || 'Unable to redeem reward.');
     } finally {
@@ -343,6 +352,7 @@ export default function CounterPOSPage({ storeInfo }) {
         productId: item.product.id,
         quantity: item.quantity,
         discount: item.discount,
+        ...(item.loyaltyRewardId ? { loyaltyRewardId: item.loyaltyRewardId } : {}),
       })),
       orderDiscount: safeOrderDiscount,
       paymentMethod,
@@ -367,6 +377,8 @@ export default function CounterPOSPage({ storeInfo }) {
         setCustomerPhone('');
         setCustomerName('');
         setLoyaltyCustomer(null);
+        setCustomerRewards([]);
+        setSelectedRewardId('');
         setCustomerLookupMessage('');
         const earnedPoints = Number(res.data.loyaltyPointsEarned || 0);
         setSuccessMessage(`Transaction ${res.data.transactionNumber} completed!${earnedPoints > 0 ? ` ${earnedPoints} loyalty point${earnedPoints === 1 ? '' : 's'} earned.` : ''}`);
@@ -387,6 +399,8 @@ export default function CounterPOSPage({ storeInfo }) {
         setCustomerPhone('');
         setCustomerName('');
         setLoyaltyCustomer(null);
+        setCustomerRewards([]);
+        setSelectedRewardId('');
         setCustomerLookupMessage('');
         setSuccessMessage('Sale saved offline. It will sync automatically when the connection returns.');
       } else {
@@ -513,9 +527,9 @@ export default function CounterPOSPage({ storeInfo }) {
               </thead>
               <tbody>
                 {cart.map((item) => (
-                  <tr key={item.product.id}>
+                  <tr key={`${item.product.id}-${item.isReward ? 'reward' : 'regular'}`}>
                     <td>
-                      <div style={{ fontWeight: '600' }}>{item.product.name} {item.product.buyOneTakeOne && <span className="promotion-badge">BUY 1 TAKE 1</span>}</div>
+                      <div style={{ fontWeight: '600' }}>{item.product.name} {item.isReward && <span className="promotion-badge">POINTS REWARD</span>} {!item.isReward && item.product.buyOneTakeOne && <span className="promotion-badge">BUY 1 TAKE 1</span>}</div>
                       <div style={{ fontSize: '11px', color: 'var(--secondary-text)' }}>
                         Unit: {item.product.unit} | Stock: {item.product.stockQuantity}{item.product.buyOneTakeOne ? ` | Free units: ${item.quantity}` : ''}
                       </div>
@@ -532,7 +546,7 @@ export default function CounterPOSPage({ storeInfo }) {
                         <button
                           className="qty-btn"
                           onClick={() => stepQuantity(item.product.id, item.quantity - (isWeightProduct(item.product) ? 0.1 : 1))}
-                          disabled={item.quantity <= (isWeightProduct(item.product) ? 0.1 : 1)}
+                          disabled={item.isReward || item.quantity <= (isWeightProduct(item.product) ? 0.1 : 1)}
                         >
                           -
                         </button>
@@ -545,11 +559,12 @@ export default function CounterPOSPage({ storeInfo }) {
                           value={quantityDrafts[item.product.id] ?? item.quantity}
                           onChange={(event) => handleQuantityInput(item.product.id, event.target.value)}
                           onBlur={() => commitQuantityInput(item.product.id)}
+                          disabled={item.isReward}
                         />
                         <button
                           className="qty-btn"
                           onClick={() => stepQuantity(item.product.id, item.quantity + (isWeightProduct(item.product) ? 0.1 : 1))}
-                          disabled={item.quantity >= item.product.stockQuantity}
+                          disabled={item.isReward || item.quantity >= item.product.stockQuantity}
                         >
                           +
                         </button>

@@ -197,6 +197,9 @@ body {
   font-size: 17px;
 }
 
+.points-tracker-rewards-toggle { width: 100%; }
+.points-tracker-rewards-list { margin-top: 16px; }
+
 .points-tracker-reward {
   display: flex;
   align-items: center;

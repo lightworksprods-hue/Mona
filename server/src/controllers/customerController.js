@@ -121,26 +121,24 @@ exports.redeem = async (req, res, next) => {
     const rewardId = String(req.body.rewardId || '').trim();
     if (!phone || !rewardId) return res.status(400).json({ success: false, message: 'Customer phone and reward are required.' });
 
-    const redemption = await prisma.$transaction(async (tx) => {
-      const customer = await tx.customer.findUnique({ where: { phone } });
-      const reward = await tx.loyaltyReward.findUnique({ where: { id: rewardId }, include: { product: true } });
-      if (!customer) throw { status: 404, message: 'Customer was not found.' };
-      if (!reward?.isActive || !reward.product.isActive) throw { status: 400, message: 'This reward is no longer available.' };
-      if (Number(reward.product.stockQuantity) < 1) throw { status: 409, message: 'This reward is out of stock.' };
-      if (customer.pointsBalance < reward.pointsCost) throw { status: 400, message: 'Customer does not have enough points.' };
+    const customer = await prisma.customer.findUnique({ where: { phone }, select: { pointsBalance: true } });
+    const reward = await prisma.loyaltyReward.findUnique({ where: { id: rewardId }, include: { product: true } });
+    if (!customer) return res.status(404).json({ success: false, message: 'Customer was not found.' });
+    if (!reward?.isActive || !reward.product.isActive) return res.status(400).json({ success: false, message: 'This reward is no longer available.' });
+    if (Number(reward.product.stockQuantity) < 1) return res.status(409).json({ success: false, message: 'This reward is out of stock.' });
+    if (customer.pointsBalance < reward.pointsCost) return res.status(400).json({ success: false, message: 'Customer does not have enough points.' });
 
-      await tx.customer.update({ where: { id: customer.id }, data: { pointsBalance: { decrement: reward.pointsCost } } });
-      await tx.product.update({ where: { id: reward.productId }, data: { stockQuantity: { decrement: 1 } } });
-      await tx.loyaltyTransaction.create({
-        data: { customerId: customer.id, type: 'REDEEM', points: -reward.pointsCost, note: `Redeemed ${reward.product.name}` },
-      });
-      return tx.loyaltyRedemption.create({
-        data: { customerId: customer.id, rewardId: reward.id, pointsSpent: reward.pointsCost },
-        include: { reward: { include: { product: { select: { name: true } } } } },
-      });
+    // This only validates and prepares the reward. Points and inventory are
+    // deducted atomically when the checkout containing this reward completes.
+    res.json({
+      success: true,
+      data: {
+        rewardId: reward.id,
+        pointsSpent: reward.pointsCost,
+        product: reward.product,
+      },
+      message: 'Reward added to the pending cart.',
     });
-
-    res.json({ success: true, data: redemption, message: 'Reward redeemed successfully.' });
   } catch (error) {
     if (error.status) return res.status(error.status).json({ success: false, message: error.message });
     next(error);
