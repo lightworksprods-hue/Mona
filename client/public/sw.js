@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mona-pos-shell-v2';
+const CACHE_NAME = 'mona-pos-shell-v3';
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/mona-removebg-preview.png'];
 
 self.addEventListener('install', (event) => {
@@ -17,6 +17,24 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET' || new URL(event.request.url).pathname.startsWith('/api/')) return;
 
+  const requestUrl = new URL(event.request.url);
+  const isNavigation = event.request.mode === 'navigate' || requestUrl.pathname === '/' || requestUrl.pathname === '/index.html';
+
+  // Always prefer the newest HTML document so it cannot reference stale,
+  // deleted Vite chunks after a deployment.
+  if (isNavigation) {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy));
+        }
+        return response;
+      }).catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
@@ -27,7 +45,11 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         }
         return response;
-      }).catch(() => caches.match('/index.html'));
+      }).catch(() => {
+        // Never return index.html for a failed JS/CSS/image request. That
+        // produces a misleading module MIME-type error in the browser.
+        return new Response('', { status: 503, statusText: 'Offline asset unavailable' });
+      });
     })
   );
 });
