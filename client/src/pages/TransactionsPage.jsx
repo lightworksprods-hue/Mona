@@ -392,10 +392,10 @@ export default function TransactionsPage({ storeInfo }) {
                   <tbody>{(orderDetails.items || []).map((item) => (
                     <tr key={item.id}>
                       <td><strong>{item.productName}</strong><small>{item.sku} {item.barcode ? `· ${item.barcode}` : ''}</small></td>
-                      <td style={{ textAlign: 'center' }}>{item.quantity}</td>
-                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatCurrency(item.unitPrice)}</td>
-                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatCurrency(item.discount)}</td>
-                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>{formatCurrency(item.lineTotal)}</td>
+                      <td data-label="Qty" style={{ textAlign: 'center' }}>{item.quantity}</td>
+                      <td data-label="Price" style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatCurrency(item.unitPrice)}</td>
+                      <td data-label="Discount" style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatCurrency(item.discount)}</td>
+                      <td data-label="Total" style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>{formatCurrency(item.lineTotal)}</td>
                     </tr>
                   ))}</tbody>
                 </table>

@@ -1012,7 +1012,7 @@ html[data-theme='dark'] .weight-modal .modal-footer {
 }
 
 .order-details-modal {
-  width: min(720px, calc(100vw - 24px));
+  width: min(760px, calc(100vw - 16px));
 }
 
 .order-details-body {
@@ -1040,8 +1040,23 @@ html[data-theme='dark'] .weight-modal .modal-footer {
 }
 
 .order-details-table {
-  min-width: 620px;
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
 }
+
+.order-details-table th:first-child,
+.order-details-table td:first-child { width: 42%; }
+.order-details-table th:nth-child(2),
+.order-details-table td:nth-child(2) { width: 10%; }
+.order-details-table th:nth-child(3),
+.order-details-table td:nth-child(3),
+.order-details-table th:nth-child(4),
+.order-details-table td:nth-child(4),
+.order-details-table th:nth-child(5),
+.order-details-table td:nth-child(5) { width: 16%; }
+
+.order-details-table td { overflow-wrap: anywhere; }
 
 .order-details-table small {
   display: block;
@@ -1120,6 +1135,39 @@ html[data-theme='dark'] .weight-modal .modal-footer {
 
   .order-details-meta {
     grid-template-columns: 1fr;
+  }
+
+  .order-details-table thead { display: none; }
+  .order-details-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 14px;
+    padding: 12px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .order-details-table tbody tr:last-child { border-bottom: 0; }
+  .order-details-table tbody td,
+  .order-details-table tbody td:first-child,
+  .order-details-table tbody td:nth-child(2),
+  .order-details-table tbody td:nth-child(3),
+  .order-details-table tbody td:nth-child(4),
+  .order-details-table tbody td:nth-child(5) {
+    width: auto;
+    padding: 0;
+    text-align: right !important;
+    border: 0;
+  }
+  .order-details-table tbody td:first-child {
+    grid-column: 1 / -1;
+    text-align: left !important;
+  }
+  .order-details-table tbody td:not(:first-child)::before {
+    content: attr(data-label);
+    float: left;
+    color: var(--secondary-text);
+    font-size: 11px;
+    font-family: var(--font-sans);
+    font-weight: 400;
   }
 }
 
