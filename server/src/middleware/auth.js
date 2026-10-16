@@ -48,6 +48,11 @@ const authenticate = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'User account is invalid or deactivated.' });
     }
 
+    const settings = await prisma.storeSettings.findFirst({ select: { systemActive: true } });
+    if (settings && !settings.systemActive && user.role !== 'SUPERADMIN') {
+      return res.status(503).json({ success: false, code: 'SYSTEM_DEACTIVATED', message: 'The POS system is currently deactivated. Contact the superadmin.' });
+    }
+
     req.user = user;
     next();
   } catch (error) {
@@ -64,7 +69,8 @@ const requireRole = (...roles) => {
     if (!req.user) {
       return res.status(401).json({ success: false, message: 'Authentication required.' });
     }
-    if (!roles.includes(req.user.role)) {
+    const isSuperadminAdminAccess = req.user.role === 'SUPERADMIN' && roles.includes('ADMIN');
+    if (!roles.includes(req.user.role) && !isSuperadminAdminAccess) {
       return res.status(403).json({
         success: false,
         message: `Forbidden. Requires one of: ${roles.join(', ')}`,

@@ -168,7 +168,7 @@ exports.closeSession = async (req, res, next) => {
 
 exports.getHistory = async (req, res, next) => {
   try {
-    const where = req.user.role === 'ADMIN' ? {} : { cashierId: req.user.id };
+    const where = ['ADMIN', 'SUPERADMIN'].includes(req.user.role) ? {} : { cashierId: req.user.id };
     const sessions = await prisma.cashSession.findMany({
       where,
       orderBy: { openedAt: 'desc' },

@@ -215,6 +215,22 @@ body {
 .loyalty-rewards-admin { display: grid; gap: 16px; }
 .reward-create-form { display: grid; grid-template-columns: 1fr 180px auto; gap: 12px; align-items: end; padding: 16px; }
 
+.system-control-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.system-control-card p { margin-top: 4px; font-size: 12px; }
+.system-control-card.is-inactive { background: var(--error-bg); color: var(--error); }
+
 @media (max-width: 720px) {
   .reward-create-form { grid-template-columns: 1fr; }
 }

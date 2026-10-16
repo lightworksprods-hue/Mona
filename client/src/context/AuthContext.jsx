@@ -79,10 +79,11 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('pos_user');
   };
 
-  const isAdmin = user?.role === 'ADMIN';
+  const isSuperAdmin = user?.role === 'SUPERADMIN';
+  const isAdmin = user?.role === 'ADMIN' || isSuperAdmin;
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, isAdmin }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, isAdmin, isSuperAdmin }}>
       {children}
     </AuthContext.Provider>
   );

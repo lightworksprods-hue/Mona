@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
+import { useAuth } from '../context/AuthContext';
 
 export default function SettingsPage({ storeInfo, onStoreUpdate }) {
+  const { isSuperAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState('store'); // 'store' | 'users' | 'devices' | 'customers' | 'rewards' | 'audit'
   const [formData, setFormData] = useState({
     storeName: '',
@@ -165,6 +167,19 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
     }
   };
 
+  const handleSystemToggle = async () => {
+    const nextStatus = storeInfo?.systemActive === false;
+    const action = nextStatus ? 'activate' : 'deactivate';
+    if (!window.confirm(`Are you sure you want to ${action} the POS system?`)) return;
+    try {
+      const res = await api.updateSystemStatus(nextStatus);
+      setSuccessMessage(res.message || `System ${nextStatus ? 'activated' : 'deactivated'}.`);
+      if (onStoreUpdate) onStoreUpdate(res.data);
+    } catch (err) {
+      setErrorMessage(err.message || 'Unable to change system status');
+    }
+  };
+
   const handleCreateUser = async (e) => {
     e.preventDefault();
     setErrorMessage('');
@@ -248,6 +263,17 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
             <span className="pos-panel-title">Store & Receipt Configuration</span>
           </div>
           <form onSubmit={handleStoreSubmit} style={{ padding: '20px' }}>
+            {isSuperAdmin && (
+              <div className={`system-control-card ${storeInfo?.systemActive === false ? 'is-inactive' : ''}`}>
+                <div>
+                  <strong>System control</strong>
+                  <p>{storeInfo?.systemActive === false ? 'The POS is deactivated for admins and cashiers.' : 'The POS is currently active.'}</p>
+                </div>
+                <button type="button" className={storeInfo?.systemActive === false ? 'btn btn-primary' : 'btn btn-danger'} onClick={handleSystemToggle}>
+                  {storeInfo?.systemActive === false ? 'Activate system' : 'Deactivate system'}
+                </button>
+              </div>
+            )}
             <div className="form-group">
               <label className="field-label">Store Name</label>
               <input

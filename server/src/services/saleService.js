@@ -51,7 +51,7 @@ async function processCheckout({
     if (existingSale) return existingSale;
   }
 
-  if (userRole !== 'ADMIN') {
+  if (!['ADMIN', 'SUPERADMIN'].includes(userRole)) {
     const openDrawer = await prisma.cashSession.findFirst({
       where: { cashierId, status: 'OPEN' },
       select: { id: true },

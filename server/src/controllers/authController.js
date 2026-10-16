@@ -37,6 +37,11 @@ exports.login = async (req, res, next) => {
       });
     }
 
+    const systemSettings = await prisma.storeSettings.findFirst({ select: { systemActive: true } });
+    if (systemSettings && !systemSettings.systemActive && user.role !== 'SUPERADMIN') {
+      return res.status(503).json({ success: false, code: 'SYSTEM_DEACTIVATED', message: 'The POS system is currently deactivated. Contact the superadmin.' });
+    }
+
     const deviceKey = deviceId.trim();
     let device = await prisma.authorizedDevice.findUnique({ where: { deviceKey } });
     if (!device) {

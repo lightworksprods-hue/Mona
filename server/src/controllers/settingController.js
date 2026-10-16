@@ -16,6 +16,7 @@ exports.getSettings = async (req, res, next) => {
           receiptFooter: 'Thank you for shopping at MONA! Please come again.',
           receiptPaperWidth: '80mm',
           loyaltyPointsPerHundred: 1.00,
+          systemActive: true,
         },
       });
     } else if (settings.storeName === 'Metro Pink Supermart') {
@@ -29,6 +30,28 @@ exports.getSettings = async (req, res, next) => {
       });
     }
     res.json({ success: true, data: settings });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateSystemStatus = async (req, res, next) => {
+  try {
+    const systemActive = Boolean(req.body.systemActive);
+    let settings = await prisma.storeSettings.findFirst();
+    settings = settings
+      ? await prisma.storeSettings.update({ where: { id: settings.id }, data: { systemActive } })
+      : await prisma.storeSettings.create({ data: { systemActive } });
+
+    await createAuditLog({
+      userId: req.user.id,
+      action: systemActive ? 'SYSTEM_ACTIVATED' : 'SYSTEM_DEACTIVATED',
+      entity: 'StoreSettings',
+      entityId: settings.id,
+      details: { systemActive },
+      ipAddress: req.ip,
+    });
+    res.json({ success: true, message: systemActive ? 'POS system activated.' : 'POS system deactivated.', data: settings });
   } catch (error) {
     next(error);
   }

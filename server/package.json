@@ -14,6 +14,8 @@
     "migrate:devices": "node scripts/migrateDeviceAuthorization.js",
     "migrate:loyalty": "node scripts/migrateCustomerLoyalty.js",
     "migrate:rewards": "node scripts/migrateLoyaltyRewards.js",
+    "migrate:system": "node scripts/migrateSystemControl.js",
+    "create:superadmin": "node scripts/createSuperadmin.js",
     "test": "node test/api.test.js"
   },
   "keywords": ["counter-pos", "point-of-sale", "express", "prisma", "supabase"],

@@ -11,6 +11,7 @@ datasource db {
 }
 
 enum Role {
+  SUPERADMIN
   ADMIN
   CASHIER
 }
@@ -307,6 +308,7 @@ model StoreSettings {
   receiptFooter  String    @default("Thank you for shopping with us! Please come again.")
   receiptPaperWidth String @default("80mm")
   loyaltyPointsPerHundred Decimal @default(1.00) @db.Decimal(8, 2)
+  systemActive Boolean @default(true)
   updatedAt      DateTime  @updatedAt
 
   @@map("store_settings")

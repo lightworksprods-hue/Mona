@@ -111,6 +111,7 @@ export const api = {
   },
   getSettings: () => request('/settings'),
   updateSettings: (payload) => request('/settings', { method: 'PUT', body: JSON.stringify(payload) }),
+  updateSystemStatus: (systemActive) => request('/system/status', { method: 'PUT', body: JSON.stringify({ systemActive }) }),
   getAuditLogs: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
     return request(`/audit-logs${qs ? `?${qs}` : ''}`);
