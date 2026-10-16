@@ -87,6 +87,7 @@ export const api = {
 
   // Customer loyalty
   lookupCustomer: (phone) => request(`/customers/lookup?phone=${encodeURIComponent(phone)}`),
+  getCustomers: (search = '') => request(`/customers${search ? `?search=${encodeURIComponent(search)}` : ''}`),
 
   // Inventory
   getInventorySummary: () => request('/inventory/summary'),

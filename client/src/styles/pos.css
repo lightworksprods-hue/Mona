@@ -929,7 +929,9 @@ html[data-theme='dark'] .weight-modal .modal-footer {
 
 .customer-loyalty-box {
   display: grid;
-  gap: 6px;
+  grid-template-columns: minmax(150px, .8fr) minmax(180px, 1.2fr);
+  gap: 10px 14px;
+  align-items: center;
   margin: 0 18px 14px;
   padding: 12px;
   border: 1px solid var(--border-color);
@@ -938,8 +940,18 @@ html[data-theme='dark'] .weight-modal .modal-footer {
 }
 
 .customer-loyalty-box .field-label {
-  margin-bottom: 5px;
+  margin: 0;
+  align-self: center;
 }
+
+.customer-loyalty-box input { width: 100%; min-width: 0; }
+.customer-loyalty-box small { grid-column: 1 / -1; }
+
+.customer-management-header { align-items: flex-start; }
+.customer-management-header p { margin: 4px 0 0; color: var(--secondary-text); font-size: 12px; }
+.customer-search-row { display: flex; gap: 10px; padding: 14px; border-bottom: 1px solid var(--border-color); }
+.customer-search-row .form-control { flex: 1; min-width: 0; }
+.customer-points-badge { display: inline-block; padding: 4px 8px; border-radius: 999px; background: var(--soft-pink-bg); color: var(--dark-pink); font-weight: 700; font-size: 12px; }
 
 .customer-points-success,
 .customer-points-hint {
@@ -1136,6 +1148,10 @@ html[data-theme='dark'] .weight-modal .modal-footer {
   .order-details-meta {
     grid-template-columns: 1fr;
   }
+
+  .customer-loyalty-box { grid-template-columns: 1fr; }
+  .customer-loyalty-box small { grid-column: auto; }
+  .customer-search-row { flex-direction: column; }
 
   .order-details-table thead { display: none; }
   .order-details-table tbody tr {
@@ -1501,6 +1517,18 @@ html[data-theme='dark'] .weight-modal .modal-footer {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   background: var(--soft-pink-bg);
+}
+
+.settings-tab-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: 100%;
+}
+
+@media (max-width: 900px) {
+  .settings-tab-list { justify-content: flex-start; width: 100%; }
 }
 
 .receipt-settings-card p { margin: 5px 0 0; color: var(--secondary-text); font-size: 12px; line-height: 1.45; }

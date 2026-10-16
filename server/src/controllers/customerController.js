@@ -14,3 +14,27 @@ exports.lookup = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.list = async (req, res, next) => {
+  try {
+    const search = String(req.query.search || '').trim();
+    const customers = await prisma.customer.findMany({
+      where: search ? { OR: [{ phone: { contains: search } }, { fullName: { contains: search, mode: 'insensitive' } }] } : undefined,
+      orderBy: [{ pointsBalance: 'desc' }, { updatedAt: 'desc' }],
+      take: 200,
+      select: {
+        id: true,
+        phone: true,
+        fullName: true,
+        pointsBalance: true,
+        totalSpent: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: { select: { sales: true, loyaltyTransactions: true } },
+      },
+    });
+    res.json({ success: true, data: customers });
+  } catch (error) {
+    next(error);
+  }
+};

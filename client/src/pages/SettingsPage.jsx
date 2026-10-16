@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { formatDateTime } from '../utils/formatters';
+import { formatCurrency, formatDateTime } from '../utils/formatters';
 
 export default function SettingsPage({ storeInfo, onStoreUpdate }) {
-  const [activeTab, setActiveTab] = useState('store'); // 'store' | 'users' | 'devices' | 'audit'
+  const [activeTab, setActiveTab] = useState('store'); // 'store' | 'users' | 'devices' | 'customers' | 'audit'
   const [formData, setFormData] = useState({
     storeName: '',
     storeAddress: '',
@@ -18,6 +18,8 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
   // User Management State
   const [users, setUsers] = useState([]);
   const [devices, setDevices] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [customerSearch, setCustomerSearch] = useState('');
   const [newUser, setNewUser] = useState({
     username: '',
     fullName: '',
@@ -50,6 +52,7 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
   useEffect(() => {
     if (activeTab === 'users') loadUsers();
     if (activeTab === 'devices') loadDevices();
+    if (activeTab === 'customers') loadCustomers();
     if (activeTab === 'audit') loadAuditLogs();
   }, [activeTab]);
 
@@ -68,6 +71,15 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
       setDevices(res.data || []);
     } catch (err) {
       setErrorMessage(err.message || 'Failed to load authorized devices');
+    }
+  };
+
+  const loadCustomers = async (search = customerSearch) => {
+    try {
+      const res = await api.getCustomers(search);
+      setCustomers(res.data || []);
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to load customers');
     }
   };
 
@@ -136,7 +148,7 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div className="pos-panel-header" style={{ borderRadius: 'var(--radius-sm)' }}>
         <h1 className="pos-panel-title" style={{ fontSize: '18px' }}>Store Settings & Administration</h1>
-        <div style={{ display: 'flex', gap: '6px' }}>
+        <div className="settings-tab-list">
           <button
             className={`btn ${activeTab === 'store' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
             onClick={() => setActiveTab('store')}
@@ -154,6 +166,12 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
             onClick={() => setActiveTab('devices')}
           >
             Authorized Devices
+          </button>
+          <button
+            className={`btn ${activeTab === 'customers' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+            onClick={() => setActiveTab('customers')}
+          >
+            Customers & Loyalty
           </button>
           <button
             className={`btn ${activeTab === 'audit' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
@@ -384,6 +402,45 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
                 Add User
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'customers' && (
+        <div className="pos-panel customer-management-panel">
+          <div className="pos-panel-header customer-management-header">
+            <div>
+              <span className="pos-panel-title">Customers & Loyalty Points</span>
+              <p>View customers identified by phone number, their points balance, and spending.</p>
+            </div>
+            <button className="btn btn-secondary btn-sm" onClick={() => loadCustomers()}>Refresh</button>
+          </div>
+          <div className="customer-search-row">
+            <input
+              className="form-control"
+              placeholder="Search by phone number or customer name..."
+              value={customerSearch}
+              onChange={(e) => setCustomerSearch(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') loadCustomers(); }}
+            />
+            <button className="btn btn-primary" onClick={() => loadCustomers()}>Search</button>
+          </div>
+          <div className="table-container">
+            <table className="pos-table customer-table">
+              <thead><tr><th>Customer</th><th>Phone</th><th>Points</th><th>Total spent</th><th>Sales</th><th>Last activity</th></tr></thead>
+              <tbody>
+                {customers.length === 0 ? <tr><td colSpan="6" className="empty-state">No loyalty customers found.</td></tr> : customers.map((customer) => (
+                  <tr key={customer.id}>
+                    <td><strong>{customer.fullName || 'Unnamed customer'}</strong></td>
+                    <td style={{ fontFamily: 'var(--font-mono)' }}>{customer.phone}</td>
+                    <td><span className="customer-points-badge">{customer.pointsBalance} pts</span></td>
+                    <td style={{ fontFamily: 'var(--font-mono)' }}>{formatCurrency(customer.totalSpent)}</td>
+                    <td>{customer._count?.sales || 0}</td>
+                    <td>{formatDateTime(customer.updatedAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
