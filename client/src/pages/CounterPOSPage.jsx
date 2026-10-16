@@ -29,6 +29,7 @@ export default function CounterPOSPage({ storeInfo }) {
   const [paymentReference, setPaymentReference] = useState('');
   const [notes, setNotes] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [customerName, setCustomerName] = useState('');
   const [loyaltyCustomer, setLoyaltyCustomer] = useState(null);
   const [customerLookupMessage, setCustomerLookupMessage] = useState('');
 
@@ -67,6 +68,7 @@ export default function CounterPOSPage({ storeInfo }) {
     try {
       const response = await api.lookupCustomer(phone);
       setLoyaltyCustomer(response.data);
+      if (response.data?.fullName) setCustomerName(response.data.fullName);
       setCustomerLookupMessage(response.data ? `${response.data.pointsBalance} points available` : 'New customer — points will start after this sale.');
     } catch (error) {
       setLoyaltyCustomer(null);
@@ -314,6 +316,7 @@ export default function CounterPOSPage({ storeInfo }) {
       paymentReference: paymentReference.trim() || null,
       notes: notes.trim() || null,
       customerPhone: customerPhone.trim() || null,
+      customerName: customerName.trim() || null,
     };
 
     try {
@@ -328,6 +331,7 @@ export default function CounterPOSPage({ storeInfo }) {
         setOrderDiscount(0);
         setNotes('');
         setCustomerPhone('');
+        setCustomerName('');
         setLoyaltyCustomer(null);
         setCustomerLookupMessage('');
         const earnedPoints = Number(res.data.loyaltyPointsEarned || 0);
@@ -347,6 +351,7 @@ export default function CounterPOSPage({ storeInfo }) {
         setOrderDiscount(0);
         setNotes('');
         setCustomerPhone('');
+        setCustomerName('');
         setLoyaltyCustomer(null);
         setCustomerLookupMessage('');
         setSuccessMessage('Sale saved offline. It will sync automatically when the connection returns.');
@@ -582,18 +587,26 @@ export default function CounterPOSPage({ storeInfo }) {
         </div>
 
         <div className="customer-loyalty-box">
-          <div>
-            <label className="field-label" htmlFor="customer-phone">Customer loyalty phone</label>
+          <label className="field-label" htmlFor="customer-phone">Customer phone</label>
             <input
               id="customer-phone"
               type="tel"
               className="form-control"
-              placeholder="Enter phone number for points"
+              placeholder="Phone number for points"
               value={customerPhone}
               onChange={(event) => { setCustomerPhone(event.target.value); setLoyaltyCustomer(null); setCustomerLookupMessage(''); }}
               onBlur={handleCustomerLookup}
             />
-          </div>
+          <label className="field-label" htmlFor="customer-name">Full name <span className="optional-label">(optional)</span></label>
+          <input
+            id="customer-name"
+            type="text"
+            className="form-control"
+            placeholder="Customer full name"
+            value={customerName}
+            onChange={(event) => setCustomerName(event.target.value)}
+            maxLength={100}
+          />
           {customerLookupMessage && <small className={loyaltyCustomer ? 'customer-points-success' : 'customer-points-hint'}>{customerLookupMessage}</small>}
         </div>
 
