@@ -1,5 +1,29 @@
 const prisma = require('../config/db');
 const { createAuditLog } = require('../services/auditService');
+const crypto = require('crypto');
+
+function createEan13() {
+  const prefix = '200';
+  const randomPart = String(crypto.randomInt(0, 1000000000)).padStart(9, '0');
+  const base = `${prefix}${randomPart}`;
+  const sum = base.split('').reduce((total, digit, index) => total + Number(digit) * (index % 2 === 0 ? 1 : 3), 0);
+  return `${base}${(10 - (sum % 10)) % 10}`;
+}
+
+// Generate a unique internal EAN-13 barcode for an admin product form.
+exports.generateBarcode = async (req, res, next) => {
+  try {
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const barcode = createEan13();
+      const existing = await prisma.product.findUnique({ where: { barcode } });
+      if (!existing) return res.json({ success: true, data: { barcode } });
+    }
+
+    return res.status(503).json({ success: false, message: 'Unable to generate a unique barcode. Please try again.' });
+  } catch (error) {
+    return next(error);
+  }
+};
 
 // Get all products with optional search query & category filter
 exports.getProducts = async (req, res, next) => {

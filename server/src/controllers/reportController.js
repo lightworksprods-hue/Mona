@@ -18,15 +18,17 @@ exports.getDashboardStats = async (req, res, next) => {
         },
         status: { in: ['COMPLETED', 'PARTIALLY_REFUNDED'] },
       },
-      select: { totalAmount: true, items: { select: { quantity: true } } },
+      select: { totalAmount: true, items: { select: { quantity: true, lineTotal: true, costPrice: true } } },
     });
 
     let grossTodaySalesTotal = 0;
     let todayItemsSold = 0;
+    let todayEstimatedProfit = 0;
     todaySales.forEach((s) => {
       grossTodaySalesTotal += Number(s.totalAmount);
       s.items.forEach((item) => {
         todayItemsSold += Number(item.quantity);
+        todayEstimatedProfit += Number(item.lineTotal) - (Number(item.costPrice) * Number(item.quantity));
       });
     });
 
@@ -36,6 +38,7 @@ exports.getDashboardStats = async (req, res, next) => {
     });
     const todayRefundedTotal = todayRefunds.reduce((sum, refund) => sum + Number(refund.amount), 0);
     const todaySalesTotal = Math.max(0, grossTodaySalesTotal - todayRefundedTotal);
+    todayEstimatedProfit = Math.max(0, todayEstimatedProfit - todayRefundedTotal);
 
     const transactionCount = todaySales.length;
     const averageTransactionValue = transactionCount > 0 ? todaySalesTotal / transactionCount : 0;
@@ -73,6 +76,7 @@ exports.getDashboardStats = async (req, res, next) => {
           transactionCount,
           itemsSold: todayItemsSold,
           averageTransactionValue,
+          estimatedProfit: todayEstimatedProfit,
         },
         lowStockCount: lowStockAlerts.length,
         lowStockItems: lowStockAlerts.slice(0, 10),
@@ -129,6 +133,8 @@ exports.getReports = async (req, res, next) => {
         itemDiscountTotal: true,
         orderDiscountTotal: true,
         taxTotal: true,
+        createdAt: true,
+        cashier: { select: { id: true, fullName: true, username: true } },
         paymentMethod: true,
         items: {
           select: {
@@ -137,6 +143,7 @@ exports.getReports = async (req, res, next) => {
             sku: true,
             quantity: true,
             lineTotal: true,
+            costPrice: true,
           },
         },
       },
@@ -155,6 +162,9 @@ exports.getReports = async (req, res, next) => {
     };
 
     const productSalesMap = new Map();
+    const cashierSalesMap = new Map();
+    const peakHoursMap = new Map();
+    let estimatedGrossProfit = 0;
 
     sales.forEach((s) => {
       totalRevenue += Number(s.totalAmount);
@@ -165,9 +175,28 @@ exports.getReports = async (req, res, next) => {
       const method = s.paymentMethod || 'CASH';
       paymentBreakdown[method] = (paymentBreakdown[method] || 0) + Number(s.totalAmount);
 
+      const cashierId = s.cashier?.id || 'unknown';
+      const cashier = cashierSalesMap.get(cashierId) || {
+        cashierId,
+        cashierName: s.cashier?.fullName || s.cashier?.username || 'Unknown cashier',
+        transactions: 0,
+        sales: 0,
+        itemsSold: 0,
+      };
+      cashier.transactions += 1;
+      cashier.sales += Number(s.totalAmount);
+
+      const hour = new Date(s.createdAt).getHours();
+      const hourBucket = peakHoursMap.get(hour) || { hour, transactions: 0, sales: 0 };
+      hourBucket.transactions += 1;
+      hourBucket.sales += Number(s.totalAmount);
+      peakHoursMap.set(hour, hourBucket);
+
       // Products breakdown
       s.items.forEach((item) => {
         totalItems += Number(item.quantity);
+        cashier.itemsSold += Number(item.quantity);
+        estimatedGrossProfit += Number(item.lineTotal) - (Number(item.costPrice) * Number(item.quantity));
         const current = productSalesMap.get(item.productId) || {
           productId: item.productId,
           productName: item.productName,
@@ -179,6 +208,8 @@ exports.getReports = async (req, res, next) => {
         current.revenue += Number(item.lineTotal);
         productSalesMap.set(item.productId, current);
       });
+      estimatedGrossProfit -= Number(s.orderDiscountTotal || 0);
+      cashierSalesMap.set(cashierId, cashier);
     });
 
     const bestSellers = Array.from(productSalesMap.values())
@@ -190,6 +221,16 @@ exports.getReports = async (req, res, next) => {
       where: { createdAt: { gte: start, lte: end } },
     });
     const totalRefunded = refunds.reduce((sum, r) => sum + Number(r.amount), 0);
+    const cashierPerformance = Array.from(cashierSalesMap.values())
+      .map((cashier) => ({
+        ...cashier,
+        averageSale: cashier.transactions ? cashier.sales / cashier.transactions : 0,
+      }))
+      .sort((a, b) => b.sales - a.sales);
+    const peakHours = Array.from(peakHoursMap.values())
+      .sort((a, b) => b.transactions - a.transactions || b.sales - a.sales)
+      .slice(0, 8);
+    const estimatedProfit = Math.max(0, estimatedGrossProfit - totalRefunded);
 
     res.json({
       success: true,
@@ -206,9 +247,12 @@ exports.getReports = async (req, res, next) => {
           totalTax,
           totalRefunded,
           refundCount: refunds.length,
+          estimatedProfit,
         },
         paymentBreakdown,
         bestSellers,
+        cashierPerformance,
+        peakHours,
       },
     });
   } catch (error) {

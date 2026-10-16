@@ -1,0 +1,18 @@
+{
+  "name": "Mona's Grocery Store",
+  "short_name": "Mona Grocery",
+  "description": "Mona's Grocery Store point-of-sale system.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fff7fa",
+  "theme_color": "#c2185b",
+  "icons": [
+    {
+      "src": "/mona-removebg-preview.png",
+      "sizes": "432x578",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

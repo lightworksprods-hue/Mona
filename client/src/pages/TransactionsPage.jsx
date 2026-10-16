@@ -18,12 +18,34 @@ export default function TransactionsPage({ storeInfo }) {
 
   // Selected Sale for viewing/reprinting
   const [selectedSale, setSelectedSale] = useState(null);
+  const [orderDetails, setOrderDetails] = useState(null);
 
   // Refund Modal State
   const [refundModalOpen, setRefundModalOpen] = useState(false);
   const [saleToRefund, setSaleToRefund] = useState(null);
   const [refundReason, setRefundReason] = useState('');
   const [restockOnRefund, setRestockOnRefund] = useState(true);
+  const [refundQuantities, setRefundQuantities] = useState({});
+  const [refundLoading, setRefundLoading] = useState(false);
+
+  const getRefundedQuantities = (sale) => {
+    const refunded = {};
+    (sale?.refunds || []).forEach((refund) => {
+      const items = Array.isArray(refund.itemsJson) ? refund.itemsJson : [];
+      items.forEach((item) => {
+        refunded[item.productId] = (refunded[item.productId] || 0) + Number(item.quantity || 0);
+      });
+    });
+    return refunded;
+  };
+
+  const getRemainingQuantity = (item) => Math.max(0, Number(item.quantity || 0) - (getRefundedQuantities(saleToRefund)[item.productId] || 0));
+
+  const refundTotal = (saleToRefund?.items || []).reduce((total, item) => {
+    const quantity = Number(refundQuantities[item.productId] || 0);
+    const unitPrice = Number(item.quantity) > 0 ? Number(item.lineTotal) / Number(item.quantity) : 0;
+    return total + (unitPrice * quantity);
+  }, 0);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -60,8 +82,28 @@ export default function TransactionsPage({ storeInfo }) {
     }
   };
 
-  const handleOpenRefund = (sale) => {
-    setSaleToRefund(sale);
+  const handleOpenOrderDetails = async (id) => {
+    try {
+      const res = await api.getSaleById(id);
+      setOrderDetails(res.data.sale);
+    } catch (err) {
+      setErrorMessage(err.message || 'Error loading order details');
+    }
+  };
+
+  const handleOpenRefund = async (sale) => {
+    setRefundLoading(true);
+    try {
+      const response = await api.getSaleById(sale.id);
+      const freshSale = response.data.sale;
+      setSaleToRefund(freshSale);
+      setRefundQuantities(Object.fromEntries((freshSale.items || []).map((item) => [item.productId, ''])));
+    } catch (err) {
+      setErrorMessage(err.message || 'Unable to load sale items for refund.');
+      return;
+    } finally {
+      setRefundLoading(false);
+    }
     setRefundReason('');
     setRestockOnRefund(true);
     setRefundModalOpen(true);
@@ -72,11 +114,17 @@ export default function TransactionsPage({ storeInfo }) {
     if (!saleToRefund) return;
 
     try {
-      // Refund all items on the sale
-      const itemsToRefund = saleToRefund.items.map((i) => ({
+      const itemsToRefund = saleToRefund.items
+        .map((i) => ({
         productId: i.productId,
-        quantity: i.quantity,
-      }));
+          quantity: Number(refundQuantities[i.productId] || 0),
+        }))
+        .filter((item) => item.quantity > 0);
+
+      if (itemsToRefund.length === 0) {
+        setErrorMessage('Enter a refund quantity for at least one item.');
+        return;
+      }
 
       await api.processRefund({
         saleId: saleToRefund.id,
@@ -85,7 +133,7 @@ export default function TransactionsPage({ storeInfo }) {
         restockItems: restockOnRefund,
       });
 
-      setSuccessMessage(`Refund processed for ${saleToRefund.transactionNumber}.`);
+      setSuccessMessage(`Refund of ${formatCurrency(refundTotal)} processed for ${saleToRefund.transactionNumber}.`);
       setRefundModalOpen(false);
       loadSales();
     } catch (err) {
@@ -236,15 +284,23 @@ export default function TransactionsPage({ storeInfo }) {
                       <button
                         className="btn btn-secondary btn-sm"
                         style={{ marginRight: '6px' }}
+                        onClick={() => handleOpenOrderDetails(sale.id)}
+                      >
+                        Order Details
+                      </button>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        style={{ marginRight: '6px' }}
                         onClick={() => handleOpenReceipt(sale.id)}
                       >
                         Reprint Receipt
                       </button>
-                      {isAdmin && sale.status === 'COMPLETED' && (
+                      {isAdmin && sale.status !== 'REFUNDED' && (
                         <button
                           className="btn btn-secondary btn-sm"
                           style={{ color: 'var(--error)' }}
                           onClick={() => handleOpenRefund(sale)}
+                          disabled={refundLoading}
                         >
                           Refund
                         </button>
@@ -266,24 +322,107 @@ export default function TransactionsPage({ storeInfo }) {
         onClose={() => setSelectedSale(null)}
       />
 
-      {/* Refund Confirmation Modal */}
+      {orderDetails && (
+        <div className="modal-overlay" onClick={(event) => event.target === event.currentTarget && setOrderDetails(null)}>
+          <div className="modal-dialog order-details-modal">
+            <div className="modal-header">
+              <div>
+                <p className="eyebrow">TRANSACTION DETAILS</p>
+                <h2 className="modal-title">{orderDetails.transactionNumber}</h2>
+              </div>
+              <button className="modal-close-btn" onClick={() => setOrderDetails(null)} aria-label="Close order details">&times;</button>
+            </div>
+
+            <div className="modal-body order-details-body">
+              <div className="order-details-meta">
+                <span><strong>Date:</strong> {formatDateTime(orderDetails.createdAt)}</span>
+                <span><strong>Cashier:</strong> {orderDetails.cashier?.fullName || orderDetails.cashier?.username || '—'}</span>
+                <span><strong>Status:</strong> {orderDetails.status}</span>
+                <span><strong>Payment:</strong> {orderDetails.paymentMethod}</span>
+              </div>
+
+              <div className="table-container order-details-table-wrap">
+                <table className="pos-table order-details-table">
+                  <thead><tr><th>Product</th><th style={{ textAlign: 'center' }}>Qty</th><th style={{ textAlign: 'right' }}>Price</th><th style={{ textAlign: 'right' }}>Discount</th><th style={{ textAlign: 'right' }}>Total</th></tr></thead>
+                  <tbody>{(orderDetails.items || []).map((item) => (
+                    <tr key={item.id}>
+                      <td><strong>{item.productName}</strong><small>{item.sku} {item.barcode ? `· ${item.barcode}` : ''}</small></td>
+                      <td style={{ textAlign: 'center' }}>{item.quantity}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatCurrency(item.unitPrice)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatCurrency(item.discount)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>{formatCurrency(item.lineTotal)}</td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+
+              <div className="order-details-summary">
+                <div><span>Subtotal</span><strong>{formatCurrency(orderDetails.subtotal)}</strong></div>
+                <div><span>Discounts</span><strong>-{formatCurrency(Number(orderDetails.itemDiscountTotal || 0) + Number(orderDetails.orderDiscountTotal || 0))}</strong></div>
+                <div><span>VAT / Tax</span><strong>{formatCurrency(orderDetails.taxTotal)}</strong></div>
+                <div className="order-details-grand-total"><span>Total</span><strong>{formatCurrency(orderDetails.totalAmount)}</strong></div>
+                <div><span>Amount tendered</span><strong>{formatCurrency(orderDetails.amountTendered)}</strong></div>
+                <div><span>Change</span><strong>{formatCurrency(orderDetails.changeDue)}</strong></div>
+              </div>
+
+              {orderDetails.refunds?.length > 0 && (
+                <div className="order-refund-history">
+                  <h3>Refund history</h3>
+                  {orderDetails.refunds.map((refund) => <div key={refund.id}><span>{refund.refundNumber} · {formatDateTime(refund.createdAt)}</span><strong>{formatCurrency(refund.amount)}</strong></div>)}
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={() => setOrderDetails(null)}>Close</button>
+              <button type="button" className="btn btn-primary" onClick={() => { setSelectedSale(orderDetails); setOrderDetails(null); }}>Reprint Receipt</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Partial Refund Modal */}
       {refundModalOpen && saleToRefund && (
         <div className="modal-overlay">
-          <div className="modal-dialog" style={{ maxWidth: '480px' }}>
+          <div className="modal-dialog" style={{ maxWidth: '620px' }}>
             <div className="modal-header">
-              <h2 className="modal-title">Authorize Sale Refund</h2>
+              <h2 className="modal-title">Authorize Partial Refund</h2>
               <button className="modal-close-btn" onClick={() => setRefundModalOpen(false)}>
                 &times;
               </button>
             </div>
             <form onSubmit={handleProcessRefundSubmit}>
-              <div className="modal-body">
+              <div className="modal-body refund-modal-body">
                 <p style={{ marginBottom: '10px' }}>
                   Transaction: <strong>{saleToRefund.transactionNumber}</strong>
                 </p>
-                <p style={{ marginBottom: '14px' }}>
-                  Refund Amount: <strong style={{ color: 'var(--error)' }}>{formatCurrency(saleToRefund.totalAmount)}</strong>
-                </p>
+
+                <div className="refund-items-list">
+                  <div className="refund-items-heading"><span>Item</span><span>Remaining</span><span>Refund qty</span></div>
+                  {saleToRefund.items.map((item) => {
+                    const remaining = getRemainingQuantity(item);
+                    return (
+                      <div className="refund-item-row" key={item.id}>
+                        <div><strong>{item.productName}</strong><small>{formatCurrency(item.unitPrice)} each</small></div>
+                        <span>{remaining} available</span>
+                        <input
+                          className="form-control refund-quantity-input"
+                          type="number"
+                          min="0"
+                          max={remaining}
+                          step="0.001"
+                          value={refundQuantities[item.productId] || ''}
+                          disabled={remaining <= 0}
+                          onChange={(event) => setRefundQuantities((current) => ({ ...current, [item.productId]: event.target.value }))}
+                          placeholder="0"
+                          aria-label={`Refund quantity for ${item.productName}`}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="refund-total-callout"><span>Refund amount</span><strong>{formatCurrency(refundTotal)}</strong></div>
 
                 <div className="form-group">
                   <label className="field-label">Reason for Return / Refund *</label>

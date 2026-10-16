@@ -805,6 +805,232 @@ html[data-theme='dark'] .weight-modal .modal-footer {
   gap: 6px;
 }
 
+.report-toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.export-toolbar-divider {
+  width: 1px;
+  height: 24px;
+  margin: 0 4px;
+  background: var(--border-color);
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 16px;
+}
+
+.analytics-panel {
+  min-width: 0;
+}
+
+.analytics-table {
+  width: 100%;
+}
+
+.analytics-muted {
+  margin-top: 3px;
+  color: var(--secondary-text);
+  font-size: 11px;
+}
+
+.profit-callout {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 16px;
+}
+
+.profit-callout strong {
+  color: var(--success);
+  font-family: var(--font-mono);
+  font-size: 22px;
+}
+
+.profit-callout span {
+  color: var(--secondary-text);
+  font-size: 12px;
+}
+
+.refund-modal-body {
+  display: grid;
+  gap: 14px;
+}
+
+.refund-items-list {
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.refund-items-heading,
+.refund-item-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(90px, .8fr) minmax(95px, .65fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+}
+
+.refund-items-heading {
+  color: var(--secondary-text);
+  background: var(--soft-pink-bg);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.refund-item-row {
+  border-top: 1px solid var(--border-color);
+  font-size: 12px;
+}
+
+.refund-item-row small {
+  display: block;
+  margin-top: 3px;
+  color: var(--secondary-text);
+}
+
+.refund-quantity-input {
+  min-width: 0;
+  padding: 8px;
+}
+
+.refund-total-callout {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 14px;
+  border: 1px solid #f4b2c7;
+  border-radius: var(--radius-sm);
+  background: var(--soft-pink-bg);
+}
+
+.refund-total-callout strong {
+  color: var(--error);
+  font-family: var(--font-mono);
+  font-size: 18px;
+}
+
+.order-details-modal {
+  width: min(720px, calc(100vw - 24px));
+}
+
+.order-details-body {
+  display: grid;
+  gap: 16px;
+}
+
+.order-details-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  color: var(--secondary-text);
+  font-size: 12px;
+}
+
+.order-details-meta strong {
+  color: var(--primary-text);
+}
+
+.order-details-table-wrap {
+  max-height: 300px;
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.order-details-table {
+  min-width: 620px;
+}
+
+.order-details-table small {
+  display: block;
+  margin-top: 3px;
+  color: var(--secondary-text);
+  font-size: 10px;
+}
+
+.order-details-summary {
+  display: grid;
+  gap: 7px;
+  margin-left: auto;
+  width: min(320px, 100%);
+  font-size: 12px;
+}
+
+.order-details-summary > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.order-details-summary strong {
+  font-family: var(--font-mono);
+}
+
+.order-details-grand-total {
+  padding-top: 9px;
+  border-top: 2px solid var(--border-color);
+  color: var(--dark-pink);
+  font-size: 16px;
+}
+
+.order-refund-history {
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--soft-pink-bg);
+}
+
+.order-refund-history h3 {
+  margin: 0 0 8px;
+  color: var(--dark-pink);
+  font-size: 12px;
+}
+
+.order-refund-history div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 6px;
+  font-size: 11px;
+}
+
+@media (max-width: 700px) {
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-toolbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .export-toolbar-divider {
+    display: none;
+  }
+
+  .refund-items-heading,
+  .refund-item-row {
+    grid-template-columns: minmax(0, 1.3fr) 78px 82px;
+    gap: 6px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .order-details-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
 .btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -1632,5 +1858,165 @@ body {
 
   .transaction-filters .date-range-inputs > span {
     display: none;
+  }
+}
+
+/* Mobile POS layout */
+@media (max-width: 700px) {
+  body {
+    min-width: 320px;
+  }
+
+  .top-bar {
+    padding: 12px 10px;
+    gap: 10px;
+  }
+
+  .top-bar-left,
+  .top-bar-right {
+    width: 100%;
+  }
+
+  .top-bar-left {
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .brand-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 18px;
+  }
+
+  .top-bar-center {
+    order: 3;
+    width: 100%;
+    text-align: center;
+    font-size: 11px;
+  }
+
+  .top-bar-right {
+    justify-content: space-between;
+    gap: 7px;
+  }
+
+  .user-status {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+
+  .theme-toggle,
+  .top-bar-right .btn {
+    flex: 0 0 auto;
+    min-height: 36px;
+    padding: 7px 9px;
+    font-size: 11px;
+  }
+
+  .nav-bar {
+    padding: 0 6px;
+    gap: 0;
+    scrollbar-width: thin;
+  }
+
+  .nav-tab {
+    padding: 12px 10px 10px;
+    font-size: 11px;
+  }
+
+  .main-viewport {
+    padding: 10px 8px 18px;
+  }
+
+  .pos-layout {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+    gap: 12px;
+  }
+
+  .pos-layout .summary-panel {
+    order: 2;
+  }
+
+  .pos-panel {
+    border-radius: 12px;
+  }
+
+  .pos-panel-header,
+  .scanner-strip,
+  .product-catalog,
+  .summary-rows,
+  .payment-section {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .barcode-row {
+    flex-wrap: wrap;
+  }
+
+  .barcode-row .scanner-input {
+    flex-basis: 100%;
+  }
+
+  .barcode-row .quick-add-btn {
+    flex: 1;
+  }
+
+  .product-catalog-grid {
+    max-height: 280px;
+  }
+
+  .product-card {
+    min-height: 56px;
+    padding: 10px;
+  }
+
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pos-table {
+    min-width: 650px;
+  }
+
+  .grand-total-box {
+    margin-left: 12px;
+    margin-right: 12px;
+  }
+
+  .payment-method-selector {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cash-drawer-header {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 420px) {
+  .badge-tag {
+    display: none;
+  }
+
+  .brand-title {
+    font-size: 16px;
+  }
+
+  .nav-tab {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .pos-table {
+    min-width: 600px;
   }
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
+import { downloadCsv, printReport } from '../utils/reportExport';
 
 export default function InventoryPage() {
   const [summary, setSummary] = useState(null);
@@ -81,11 +82,39 @@ export default function InventoryPage() {
     }
   };
 
+  const exportInventoryCsv = () => {
+    if (!summary) return;
+    downloadCsv(`mona-inventory-${new Date().toISOString().slice(0, 10)}.csv`, [
+      {
+        title: 'Inventory Valuation', headers: ['Metric', 'Value'],
+        rows: [['Total products', summary.totalProducts], ['Cost valuation', summary.totalValuationCost], ['Retail valuation', summary.totalValuationRetail], ['Potential profit', summary.potentialProfit], ['Low stock items', summary.lowStockCount], ['Out of stock items', summary.outOfStockCount]],
+      },
+      {
+        title: 'Current Product Inventory', headers: ['Product', 'SKU', 'Barcode', 'Stock', 'Unit', 'Minimum level', 'Cost price', 'Selling price'],
+        rows: products.map((product) => [product.name, product.sku, product.barcode, product.stockQuantity, product.unit, product.minStockLevel, product.costPrice, product.sellingPrice]),
+      },
+      {
+        title: 'Low Stock Alerts', headers: ['Product', 'SKU', 'Barcode', 'Current stock', 'Minimum level', 'Status'],
+        rows: (summary.lowStockItems || []).map((product) => [product.name, product.sku, product.barcode, product.stockQuantity, product.minStockLevel, product.status]),
+      },
+    ]);
+  };
+
+  const printInventoryReport = () => {
+    if (!summary) return;
+    printReport({
+      title: 'Inventory Report', subtitle: 'Current stock and valuation',
+      summary: [['Products', summary.totalProducts], ['Cost value', formatCurrency(summary.totalValuationCost)], ['Retail value', formatCurrency(summary.totalValuationRetail)], ['Low / out', `${summary.lowStockCount} / ${summary.outOfStockCount}`]],
+      columns: ['Product', 'SKU', 'Stock', 'Unit', 'Minimum', 'Cost', 'Selling price'],
+      rows: products.map((product) => [product.name, product.sku, product.stockQuantity, product.unit, product.minStockLevel, formatCurrency(product.costPrice), formatCurrency(product.sellingPrice)]),
+    });
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div className="pos-panel-header" style={{ borderRadius: 'var(--radius-sm)' }}>
         <h1 className="pos-panel-title" style={{ fontSize: '18px' }}>Inventory & Stock Control</h1>
-        <div style={{ display: 'flex', gap: '6px' }}>
+        <div className="report-toolbar-actions">
           <button
             className={`btn ${activeTab === 'summary' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
             onClick={() => setActiveTab('summary')}
@@ -104,6 +133,9 @@ export default function InventoryPage() {
           >
             + Adjust Stock
           </button>
+          <span className="export-toolbar-divider" />
+          <button className="btn btn-secondary btn-sm" onClick={exportInventoryCsv} disabled={!summary}>Export CSV</button>
+          <button className="btn btn-primary btn-sm" onClick={printInventoryReport} disabled={!summary}>Print / PDF</button>
         </div>
       </div>
 

@@ -6,6 +6,7 @@ const { validate } = require('../middleware/errorHandler');
 const { productValidator } = require('../validators');
 
 // Fast barcode lookup for scanner (Available to Cashier & Admin)
+router.get('/barcode/generate', authenticate, requireRole('ADMIN'), productController.generateBarcode);
 router.get('/barcode/:code', authenticate, productController.lookupBarcode);
 
 // List products & search

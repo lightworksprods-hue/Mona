@@ -44,6 +44,7 @@ export const api = {
   updateUser: (id, userData) => request(`/auth/users/${id}`, { method: 'PUT', body: JSON.stringify(userData) }),
 
   // Products & Barcode Scanner
+  generateBarcode: () => request('/products/barcode/generate'),
   lookupBarcode: (code) => request(`/products/barcode/${encodeURIComponent(code)}`),
   getProducts: (params = {}) => {
     const qs = new URLSearchParams(params).toString();

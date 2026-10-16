@@ -2,6 +2,42 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
 
+const eanParity = [
+  'LLLLLL', 'LLGLGG', 'LLGGLG', 'LLGGGL', 'LGLLGG',
+  'LGGLLG', 'LGGGLL', 'LGLGLG', 'LGLGGL', 'LGGLGL',
+];
+const eanLeft = {
+  L: ['0001101', '0011001', '0010011', '0111101', '0100011', '0110001', '0101111', '0111011', '0110111', '0001011'],
+  G: ['0100111', '0110011', '0011011', '0100001', '0011101', '0111001', '0000101', '0010001', '0001001', '0010111'],
+};
+const eanRight = ['1110010', '1100110', '1101100', '1000010', '1011100', '1001110', '1010000', '1000100', '1001000', '1110100'];
+
+function barcodePattern(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.length !== 13) return null;
+  const parity = eanParity[Number(digits[0])];
+  let pattern = '101';
+  for (let index = 1; index <= 6; index += 1) pattern += eanLeft[parity[index - 1]][Number(digits[index])];
+  pattern += '01010';
+  for (let index = 7; index <= 12; index += 1) pattern += eanRight[Number(digits[index])];
+  return `${pattern}101`;
+}
+
+function barcodeSvg(value) {
+  const pattern = barcodePattern(value);
+  if (!pattern) return `<div class="barcode-fallback">${String(value || '')}</div>`;
+  const bars = [...pattern].map((bit, index) => bit === '1' ? `<rect x="${index * 2}" y="0" width="2" height="82" />` : '').join('');
+  return `<svg class="barcode-svg" viewBox="0 0 ${pattern.length * 2} 100" role="img" aria-label="Barcode ${value}"><g fill="#111">${bars}</g><text x="${pattern.length}" y="98" text-anchor="middle">${value}</text></svg>`;
+}
+
+function printBarcode(product) {
+  const printWindow = window.open('', '_blank', 'width=520,height=420');
+  if (!printWindow) return;
+  const safe = (value) => String(value || '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+  printWindow.document.write(`<!doctype html><html><head><title>Barcode - ${safe(product.name)}</title><style>body{font-family:Arial,sans-serif;margin:24px;text-align:center;color:#111}.label{width:360px;margin:auto;padding:18px;border:1px dashed #999}.name{font-size:18px;font-weight:700;margin-bottom:6px}.meta{font-size:12px;color:#555;margin:3px}.price{font-size:16px;font-weight:700;margin-top:8px}.barcode-svg{display:block;width:100%;height:115px;margin:14px auto 0}.barcode-svg text{font:12px Arial}.barcode-fallback{font:24px monospace;margin:24px 0}@media print{body{margin:0}.label{border:0}}</style></head><body><div class="label"><div class="name">${safe(product.name)}</div><div class="meta">SKU: ${safe(product.sku)}</div>${barcodeSvg(product.barcode)}<div class="price">${safe(formatCurrency(product.sellingPrice))}</div></div><script>window.onload=()=>{window.print();window.onafterprint=()=>window.close()}</script></body></html>`);
+  printWindow.document.close();
+}
+
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -10,6 +46,7 @@ export default function ProductsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [isGeneratingBarcode, setIsGeneratingBarcode] = useState(false);
 
   // Modal / Form state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -121,6 +158,19 @@ export default function ProductsPage() {
     }
   };
 
+  const handleGenerateBarcode = async () => {
+    setIsGeneratingBarcode(true);
+    setErrorMessage('');
+    try {
+      const res = await api.generateBarcode();
+      setFormData((current) => ({ ...current, barcode: res.data.barcode }));
+    } catch (err) {
+      setErrorMessage(err.message || 'Unable to generate barcode.');
+    } finally {
+      setIsGeneratingBarcode(false);
+    }
+  };
+
   const handleDelete = async (id, name) => {
     if (window.confirm(`Are you sure you want to deactivate or remove product "${name}"?`)) {
       try {
@@ -205,7 +255,12 @@ export default function ProductsPage() {
                     </td>
                     <td>{p.category?.name || 'Unassigned'}</td>
                     <td style={{ fontFamily: 'var(--font-mono)' }}>{p.sku}</td>
-                    <td style={{ fontFamily: 'var(--font-mono)' }}>{p.barcode}</td>
+                    <td style={{ fontFamily: 'var(--font-mono)' }}>
+                      <div>{p.barcode}</div>
+                      <button className="btn btn-secondary btn-sm" type="button" onClick={() => printBarcode(p)} style={{ marginTop: '5px' }}>
+                        Print label
+                      </button>
+                    </td>
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatCurrency(p.costPrice)}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
                       {formatCurrency(p.sellingPrice)}
@@ -296,13 +351,19 @@ export default function ProductsPage() {
                   </div>
                   <div className="form-group">
                     <label className="field-label">Barcode (EAN/UPC) *</label>
-                    <input
-                      type="text"
-                      required
-                      className="form-control"
-                      value={formData.barcode}
-                      onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                    />
+                    <div style={{ display: 'flex', gap: '7px' }}>
+                      <input
+                        type="text"
+                        required
+                        className="form-control"
+                        value={formData.barcode}
+                        onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                      />
+                      <button type="button" className="btn btn-secondary" onClick={handleGenerateBarcode} disabled={isGeneratingBarcode}>
+                        {isGeneratingBarcode ? 'Generating...' : 'Generate'}
+                      </button>
+                    </div>
+                    <small style={{ color: 'var(--secondary-text)' }}>Generate an internal EAN-13 or enter a supplier barcode.</small>
                   </div>
                 </div>
 
