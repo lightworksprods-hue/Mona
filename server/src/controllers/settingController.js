@@ -14,6 +14,8 @@ exports.getSettings = async (req, res, next) => {
           taxRate: 0.00,
           currencySymbol: '₱',
           receiptFooter: 'Thank you for shopping at MONA! Please come again.',
+          receiptPaperWidth: '80mm',
+          loyaltyPointsPerHundred: 1.00,
         },
       });
     } else if (settings.storeName === 'Metro Pink Supermart') {
@@ -35,7 +37,7 @@ exports.getSettings = async (req, res, next) => {
 // Update store settings (Admin only)
 exports.updateSettings = async (req, res, next) => {
   try {
-    const { storeName, storeAddress, phone, taxRate, currencySymbol, receiptFooter } = req.body;
+    const { storeName, storeAddress, phone, taxRate, currencySymbol, receiptFooter, receiptPaperWidth, loyaltyPointsPerHundred } = req.body;
 
     let settings = await prisma.storeSettings.findFirst();
     const data = {};
@@ -45,6 +47,8 @@ exports.updateSettings = async (req, res, next) => {
     if (taxRate !== undefined) data.taxRate = parseFloat(taxRate) || 0;
     if (currencySymbol !== undefined) data.currencySymbol = currencySymbol.trim();
     if (receiptFooter !== undefined) data.receiptFooter = receiptFooter.trim();
+    if (receiptPaperWidth !== undefined && ['58mm', '80mm', 'A4'].includes(receiptPaperWidth)) data.receiptPaperWidth = receiptPaperWidth;
+    if (loyaltyPointsPerHundred !== undefined) data.loyaltyPointsPerHundred = Math.max(0, parseFloat(loyaltyPointsPerHundred) || 0);
 
     if (settings) {
       settings = await prisma.storeSettings.update({

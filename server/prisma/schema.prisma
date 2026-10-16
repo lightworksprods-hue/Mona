@@ -123,12 +123,48 @@ model Product {
   @@map("products")
 }
 
+model Customer {
+  id                  String               @id @default(uuid())
+  phone               String               @unique
+  fullName            String?
+  pointsBalance       Int                  @default(0)
+  totalSpent          Decimal              @default(0.00) @db.Decimal(12, 2)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  sales               Sale[]
+  loyaltyTransactions LoyaltyTransaction[]
+
+  @@index([phone])
+  @@map("customers")
+}
+
+model LoyaltyTransaction {
+  id         String   @id @default(uuid())
+  customerId String
+  saleId     String?
+  type       String
+  points     Int
+  amount     Decimal? @db.Decimal(12, 2)
+  note       String?
+  createdAt  DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  sale     Sale?    @relation(fields: [saleId], references: [id], onDelete: SetNull)
+
+  @@index([customerId, createdAt])
+  @@index([saleId])
+  @@map("loyalty_transactions")
+}
+
 model Sale {
   id                 String              @id @default(uuid())
   transactionNumber  String              @unique
   offlineId          String?             @unique
   cashierId          String
   cashier            User                @relation("CashierSales", fields: [cashierId], references: [id])
+  customerId         String?
+  customer           Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
   subtotal           Decimal             @db.Decimal(12, 2)
   itemDiscountTotal  Decimal             @default(0.00) @db.Decimal(12, 2)
   orderDiscountTotal Decimal             @default(0.00) @db.Decimal(12, 2)
@@ -147,6 +183,7 @@ model Sale {
   payments           Payment[]
   refunds            Refund[]
   inventoryMoves     InventoryMovement[]
+  loyaltyTransactions LoyaltyTransaction[]
 
   @@index([transactionNumber])
   @@index([createdAt])
@@ -234,6 +271,8 @@ model StoreSettings {
   taxRate        Decimal   @default(0.00) @db.Decimal(5, 2)
   currencySymbol String    @default("₱")
   receiptFooter  String    @default("Thank you for shopping with us! Please come again.")
+  receiptPaperWidth String @default("80mm")
+  loyaltyPointsPerHundred Decimal @default(1.00) @db.Decimal(8, 2)
   updatedAt      DateTime  @updatedAt
 
   @@map("store_settings")

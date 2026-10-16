@@ -2,6 +2,10 @@ const prisma = require('../config/db');
 const { roundMoney, generateTransactionNumber } = require('../utils/formatters');
 const { createAuditLog } = require('./auditService');
 
+function normalizePhone(phone) {
+  return String(phone || '').trim().replace(/[\s()-]/g, '');
+}
+
 /**
  * Atomic checkout transaction
  * @param {Object} params
@@ -13,6 +17,8 @@ const { createAuditLog } = require('./auditService');
  * @param {number} params.amountTendered - Amount given by customer
  * @param {string} params.paymentReference - Reference for electronic payments
  * @param {string} params.notes - Optional notes
+ * @param {string} params.customerPhone - Optional loyalty customer phone
+ * @param {string} params.customerName - Optional loyalty customer name
  * @param {string} params.ipAddress - Client IP
  */
 async function processCheckout({
@@ -24,6 +30,8 @@ async function processCheckout({
   amountTendered = 0,
   paymentReference = null,
   notes = null,
+  customerPhone = null,
+  customerName = null,
   offlineId = null,
   ipAddress = null,
 }) {
@@ -61,6 +69,11 @@ async function processCheckout({
   // 1. Fetch store settings for global taxRate if applicable
   const storeSettings = await prisma.storeSettings.findFirst();
   const globalTaxRate = storeSettings ? Number(storeSettings.taxRate) : 0;
+  const loyaltyRate = storeSettings ? Number(storeSettings.loyaltyPointsPerHundred || 0) : 0;
+  const normalizedCustomerPhone = customerPhone ? normalizePhone(customerPhone) : null;
+  if (normalizedCustomerPhone && normalizedCustomerPhone.length < 7) {
+    throw { status: 400, message: 'Customer phone number must contain at least 7 digits.' };
+  }
 
   // 2. Fetch all products in cart with current database pricing & stock
   const productIds = items.map((i) => i.productId);
@@ -133,6 +146,7 @@ async function processCheckout({
   const taxableBase = Math.max(0, calculatedSubtotal - calculatedItemDiscountTotal - safeOrderDiscount);
   const calculatedTax = globalTaxRate > 0 ? roundMoney((taxableBase * globalTaxRate) / 100) : 0.00;
   const calculatedTotal = roundMoney(taxableBase + calculatedTax);
+  const loyaltyPoints = normalizedCustomerPhone ? Math.floor((calculatedTotal / 100) * Math.max(0, loyaltyRate)) : 0;
 
   // Validate Payment
   const safeTendered = roundMoney(Number(amountTendered || 0));
@@ -158,6 +172,18 @@ async function processCheckout({
 
   // 4. ATOMIC DATABASE TRANSACTION
   const result = await prisma.$transaction(async (tx) => {
+    let customer = null;
+    if (normalizedCustomerPhone) {
+      customer = await tx.customer.upsert({
+        where: { phone: normalizedCustomerPhone },
+        update: customerName ? { fullName: String(customerName).trim().slice(0, 100) } : {},
+        create: {
+          phone: normalizedCustomerPhone,
+          fullName: customerName ? String(customerName).trim().slice(0, 100) : null,
+        },
+      });
+    }
+
     // Re-check and atomically deduct stock for all items
     for (const item of validatedItems) {
       const updatedCount = await tx.product.updateMany({
@@ -202,6 +228,7 @@ async function processCheckout({
         transactionNumber,
         offlineId,
         cashierId,
+        customerId: customer?.id || null,
         subtotal: calculatedSubtotal,
         itemDiscountTotal: calculatedItemDiscountTotal,
         orderDiscountTotal: safeOrderDiscount,
@@ -244,8 +271,36 @@ async function processCheckout({
             username: true,
           },
         },
+        customer: { select: { id: true, phone: true, fullName: true, pointsBalance: true } },
       },
     });
+
+    if (customer) {
+      await tx.customer.update({
+        where: { id: customer.id },
+        data: {
+          totalSpent: { increment: calculatedTotal },
+          ...(loyaltyPoints > 0 ? { pointsBalance: { increment: loyaltyPoints } } : {}),
+        },
+      });
+      if (loyaltyPoints > 0) {
+        await tx.loyaltyTransaction.create({
+          data: {
+            customerId: customer.id,
+            saleId: sale.id,
+            type: 'EARN',
+            points: loyaltyPoints,
+            amount: calculatedTotal,
+            note: `Points earned from ${transactionNumber}`,
+          },
+        });
+      }
+      sale.loyaltyPointsEarned = loyaltyPoints;
+      sale.customer = {
+        ...sale.customer,
+        pointsBalance: Number(customer.pointsBalance) + loyaltyPoints,
+      };
+    }
 
     // Link inventory movements to sale
     await tx.inventoryMovement.updateMany({
@@ -272,6 +327,8 @@ async function processCheckout({
       totalAmount: calculatedTotal,
       itemCount: validatedItems.length,
       paymentMethod,
+      customerPhone: normalizedCustomerPhone,
+      loyaltyPointsEarned: loyaltyPoints,
     },
     ipAddress,
   });

@@ -34,6 +34,8 @@ const productValidator = [
 
 const checkoutValidator = [
   body('offlineId').optional().isString().isLength({ min: 8, max: 100 }).withMessage('Invalid offline sale reference'),
+  body('customerPhone').optional({ nullable: true }).isString().isLength({ min: 7, max: 30 }).withMessage('Invalid customer phone number'),
+  body('customerName').optional({ nullable: true }).isString().isLength({ max: 100 }).withMessage('Customer name is too long'),
   body('items').isArray({ min: 1 }).withMessage('Cart must contain at least 1 item'),
   body('items.*.productId').notEmpty().withMessage('Each item must have a valid productId'),
   body('items.*.quantity').isFloat({ min: 0.001 }).withMessage('Quantity must be greater than zero'),

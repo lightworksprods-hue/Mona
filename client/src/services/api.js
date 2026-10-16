@@ -85,6 +85,9 @@ export const api = {
   addCashMovement: (payload) => request('/cash/movement', { method: 'POST', body: JSON.stringify(payload) }),
   closeCashSession: (payload) => request('/cash/close', { method: 'POST', body: JSON.stringify(payload) }),
 
+  // Customer loyalty
+  lookupCustomer: (phone) => request(`/customers/lookup?phone=${encodeURIComponent(phone)}`),
+
   // Inventory
   getInventorySummary: () => request('/inventory/summary'),
   adjustStock: (payload) => request('/inventory/adjust', { method: 'POST', body: JSON.stringify(payload) }),

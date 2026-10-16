@@ -11,6 +11,8 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
     taxRate: '0.00',
     currencySymbol: '₱',
     receiptFooter: '',
+    receiptPaperWidth: '80mm',
+    loyaltyPointsPerHundred: '1.00',
   });
 
   // User Management State
@@ -39,6 +41,8 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
         taxRate: (storeInfo.taxRate || 0).toString(),
         currencySymbol: storeInfo.currencySymbol || '₱',
         receiptFooter: storeInfo.receiptFooter || '',
+        receiptPaperWidth: storeInfo.receiptPaperWidth || '80mm',
+        loyaltyPointsPerHundred: (storeInfo.loyaltyPointsPerHundred ?? 1).toString(),
       });
     }
   }, [storeInfo]);
@@ -233,6 +237,41 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
                 value={formData.receiptFooter}
                 onChange={(e) => setFormData({ ...formData, receiptFooter: e.target.value })}
               />
+            </div>
+
+            <div className="receipt-settings-card">
+              <div>
+                <strong>Receipt Printing</strong>
+                <p>Choose the paper width used by your thermal printer. Printing uses the computer's default printer automatically.</p>
+              </div>
+              <label className="field-label">Paper size
+                <select
+                  className="form-control"
+                  value={formData.receiptPaperWidth}
+                  onChange={(e) => setFormData({ ...formData, receiptPaperWidth: e.target.value })}
+                >
+                  <option value="58mm">58 mm thermal</option>
+                  <option value="80mm">80 mm thermal</option>
+                  <option value="A4">A4 / office printer</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="loyalty-settings-card">
+              <div>
+                <strong>Customer Loyalty Points</strong>
+                <p>Cashiers can enter a customer's phone number at checkout. Points are awarded from the final sale total.</p>
+              </div>
+              <label className="field-label">Points per ₱100 spent
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="form-control"
+                  value={formData.loyaltyPointsPerHundred}
+                  onChange={(e) => setFormData({ ...formData, loyaltyPointsPerHundred: e.target.value })}
+                />
+              </label>
             </div>
 
             <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }}>

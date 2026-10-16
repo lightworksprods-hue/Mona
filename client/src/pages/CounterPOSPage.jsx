@@ -28,6 +28,9 @@ export default function CounterPOSPage({ storeInfo }) {
   const [amountTendered, setAmountTendered] = useState('');
   const [paymentReference, setPaymentReference] = useState('');
   const [notes, setNotes] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [loyaltyCustomer, setLoyaltyCustomer] = useState(null);
+  const [customerLookupMessage, setCustomerLookupMessage] = useState('');
 
   // Status & Modals
   const [errorMessage, setErrorMessage] = useState('');
@@ -47,6 +50,27 @@ export default function CounterPOSPage({ storeInfo }) {
   const focusProductInput = () => {
     if (productInputRef.current) {
       productInputRef.current.focus();
+    }
+  };
+
+  const handleCustomerLookup = async () => {
+    const phone = customerPhone.trim();
+    if (!phone) {
+      setLoyaltyCustomer(null);
+      setCustomerLookupMessage('');
+      return;
+    }
+    if (phone.replace(/\D/g, '').length < 7) {
+      setCustomerLookupMessage('Enter at least 7 digits.');
+      return;
+    }
+    try {
+      const response = await api.lookupCustomer(phone);
+      setLoyaltyCustomer(response.data);
+      setCustomerLookupMessage(response.data ? `${response.data.pointsBalance} points available` : 'New customer — points will start after this sale.');
+    } catch (error) {
+      setLoyaltyCustomer(null);
+      setCustomerLookupMessage(error.message || 'Unable to look up customer.');
     }
   };
 
@@ -289,6 +313,7 @@ export default function CounterPOSPage({ storeInfo }) {
       amountTendered: paymentMethod === 'CASH' ? numericTendered : grandTotal,
       paymentReference: paymentReference.trim() || null,
       notes: notes.trim() || null,
+      customerPhone: customerPhone.trim() || null,
     };
 
     try {
@@ -302,7 +327,11 @@ export default function CounterPOSPage({ storeInfo }) {
         setPaymentReference('');
         setOrderDiscount(0);
         setNotes('');
-        setSuccessMessage(`Transaction ${res.data.transactionNumber} completed!`);
+        setCustomerPhone('');
+        setLoyaltyCustomer(null);
+        setCustomerLookupMessage('');
+        const earnedPoints = Number(res.data.loyaltyPointsEarned || 0);
+        setSuccessMessage(`Transaction ${res.data.transactionNumber} completed!${earnedPoints > 0 ? ` ${earnedPoints} loyalty point${earnedPoints === 1 ? '' : 's'} earned.` : ''}`);
       }
     } catch (err) {
       if (isNetworkError(err)) {
@@ -317,6 +346,9 @@ export default function CounterPOSPage({ storeInfo }) {
         setPaymentReference('');
         setOrderDiscount(0);
         setNotes('');
+        setCustomerPhone('');
+        setLoyaltyCustomer(null);
+        setCustomerLookupMessage('');
         setSuccessMessage('Sale saved offline. It will sync automatically when the connection returns.');
       } else {
         setErrorMessage(err.message || 'Checkout failed. Please try again.');
@@ -547,6 +579,22 @@ export default function CounterPOSPage({ storeInfo }) {
               <span style={{ fontFamily: 'var(--font-mono)' }}>{formatCurrency(taxTotal)}</span>
             </div>
           )}
+        </div>
+
+        <div className="customer-loyalty-box">
+          <div>
+            <label className="field-label" htmlFor="customer-phone">Customer loyalty phone</label>
+            <input
+              id="customer-phone"
+              type="tel"
+              className="form-control"
+              placeholder="Enter phone number for points"
+              value={customerPhone}
+              onChange={(event) => { setCustomerPhone(event.target.value); setLoyaltyCustomer(null); setCustomerLookupMessage(''); }}
+              onBlur={handleCustomerLookup}
+            />
+          </div>
+          {customerLookupMessage && <small className={loyaltyCustomer ? 'customer-points-success' : 'customer-points-hint'}>{customerLookupMessage}</small>}
         </div>
 
         {/* Big Grand Total Box */}

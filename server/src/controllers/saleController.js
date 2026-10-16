@@ -6,7 +6,7 @@ const { generateRefundNumber } = require('../utils/formatters');
 // Process new POS checkout
 exports.checkout = async (req, res, next) => {
   try {
-    const { items, orderDiscount, paymentMethod, amountTendered, paymentReference, notes, offlineId } = req.body;
+    const { items, orderDiscount, paymentMethod, amountTendered, paymentReference, notes, offlineId, customerPhone, customerName } = req.body;
 
     const sale = await processCheckout({
       cashierId: req.user.id,
@@ -17,6 +17,8 @@ exports.checkout = async (req, res, next) => {
       amountTendered,
       paymentReference,
       notes,
+      customerPhone,
+      customerName,
       offlineId,
       ipAddress: req.ip,
     });

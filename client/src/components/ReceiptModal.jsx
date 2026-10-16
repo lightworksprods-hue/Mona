@@ -7,7 +7,26 @@ export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onN
   if (!isOpen || !saleData) return null;
 
   const handlePrint = () => {
-    window.print();
+    const paperWidth = ['58mm', '80mm', 'A4'].includes(storeInfo?.receiptPaperWidth)
+      ? storeInfo.receiptPaperWidth
+      : '80mm';
+    const printWindow = window.open('', '_blank', 'width=420,height=720');
+    if (!printWindow) return;
+    const receiptHtml = receiptRef.current?.innerHTML || '';
+    printWindow.document.write(`<!doctype html><html><head><title>${saleData.transactionNumber || 'Receipt'}</title><style>
+      @page { size: ${paperWidth === 'A4' ? 'A4' : `${paperWidth} auto`}; margin: ${paperWidth === 'A4' ? '12mm' : '0'}; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: #fff; color: #000; }
+      body { width: ${paperWidth === 'A4' ? '100%' : paperWidth}; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.35; }
+      .receipt-paper { width: 100%; padding: ${paperWidth === 'A4' ? '0' : '3mm'}; }
+      .receipt-header { text-align: center; margin-bottom: 10px; }
+      .receipt-store-name { font-size: 16px; font-weight: bold; }
+      .receipt-separator { border-top: 1px dashed #000; margin: 7px 0; }
+      .receipt-row { display: flex; justify-content: space-between; gap: 8px; }
+      .receipt-row > span:last-child, .receipt-row > strong:last-child { text-align: right; }
+      .receipt-footer { text-align: center; margin-top: 12px; font-size: 10px; }
+    </style></head><body><div class="receipt-paper">${receiptHtml}</div><script>window.onload=()=>{window.print();window.onafterprint=()=>window.close()}</script></body></html>`);
+    printWindow.document.close();
   };
 
   return (
@@ -22,7 +41,7 @@ export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onN
 
         <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
           {/* Strict Text-Based Receipt Paper */}
-          <div className="receipt-paper" ref={receiptRef}>
+          <div className={`receipt-paper receipt-paper-${storeInfo?.receiptPaperWidth || '80mm'}`} ref={receiptRef}>
             <div className="receipt-header">
               <div className="receipt-store-name">{storeInfo?.storeName || 'COUNTER POS STORE'}</div>
               <div>{storeInfo?.storeAddress || '123 Market St, Manila'}</div>
