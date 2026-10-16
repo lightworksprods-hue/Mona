@@ -17,6 +17,21 @@ const authenticate = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET);
 
+    if (decoded.role === 'CASHIER') {
+      const requestDeviceId = req.headers['x-device-id'];
+      if (!requestDeviceId || requestDeviceId !== decoded.deviceId) {
+        return res.status(403).json({ success: false, code: 'DEVICE_MISMATCH', message: 'This cashier session is not valid for this device.' });
+      }
+
+      const device = await prisma.authorizedDevice.findUnique({
+        where: { deviceKey: decoded.deviceId },
+        select: { isAuthorized: true },
+      });
+      if (!device?.isAuthorized) {
+        return res.status(403).json({ success: false, code: 'DEVICE_NOT_AUTHORIZED', message: 'This device is no longer authorized for cashier access.' });
+      }
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {

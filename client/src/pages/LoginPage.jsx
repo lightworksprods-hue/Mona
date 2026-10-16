@@ -7,16 +7,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [pendingDeviceId, setPendingDeviceId] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage('');
+    setPendingDeviceId('');
 
     try {
       await login(username.trim(), password);
     } catch (err) {
       setErrorMessage(err.message || 'Invalid username or password.');
+      if (err.code === 'DEVICE_NOT_AUTHORIZED') setPendingDeviceId(err.data?.data?.deviceId || '');
     } finally {
       setIsLoading(false);
     }
@@ -73,6 +76,11 @@ export default function LoginPage() {
         {errorMessage && (
           <div className="alert alert-error" style={{ marginBottom: '16px' }}>
             {errorMessage}
+            {pendingDeviceId && (
+              <div style={{ marginTop: '8px', fontSize: '11px', wordBreak: 'break-all' }}>
+                Device ID for your administrator: <strong>{pendingDeviceId}</strong>
+              </div>
+            )}
           </div>
         )}
 

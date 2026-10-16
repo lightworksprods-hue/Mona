@@ -11,6 +11,7 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "node prisma/seed.js",
     "migrate:quantities": "node scripts/migrateDecimalQuantities.js",
+    "migrate:devices": "node scripts/migrateDeviceAuthorization.js",
     "test": "node test/api.test.js"
   },
   "keywords": ["counter-pos", "point-of-sale", "express", "prisma", "supabase"],

@@ -1,6 +1,21 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../services/api';
 
+const DEVICE_ID_KEY = 'mona_device_id';
+
+function getDeviceIdentity() {
+  let deviceId = localStorage.getItem(DEVICE_ID_KEY);
+  if (!deviceId) {
+    deviceId = window.crypto?.randomUUID?.() || `mona-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(DEVICE_ID_KEY, deviceId);
+  }
+
+  return {
+    deviceId,
+    deviceName: `POS ${navigator.platform || 'Browser'} device`,
+  };
+}
+
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
@@ -48,7 +63,7 @@ export function AuthProvider({ children }) {
   }, [token]);
 
   const login = async (username, password) => {
-    const res = await api.login({ username, password });
+    const res = await api.login({ username, password, ...getDeviceIdentity() });
     const { token: receivedToken, user: receivedUser } = res.data;
     setToken(receivedToken);
     setUser(receivedUser);

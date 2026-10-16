@@ -12,7 +12,11 @@ exports.login = async (req, res, next) => {
     if (!JWT_SECRET) {
       return res.status(500).json({ success: false, message: 'Server authentication is not configured.' });
     }
-    const { username, password } = req.body;
+    const { username, password, deviceId, deviceName } = req.body;
+
+    if (!deviceId || typeof deviceId !== 'string' || deviceId.trim().length < 16) {
+      return res.status(400).json({ success: false, message: 'This device is missing a valid device ID. Refresh the page and try again.' });
+    }
 
     const user = await prisma.user.findUnique({
       where: { username },
@@ -33,8 +37,34 @@ exports.login = async (req, res, next) => {
       });
     }
 
+    const deviceKey = deviceId.trim();
+    let device = await prisma.authorizedDevice.findUnique({ where: { deviceKey } });
+    if (!device) {
+      device = await prisma.authorizedDevice.create({
+        data: {
+          deviceKey,
+          name: String(deviceName || 'Unnamed POS device').trim().slice(0, 100) || 'Unnamed POS device',
+          lastSeenAt: new Date(),
+        },
+      });
+    } else {
+      device = await prisma.authorizedDevice.update({
+        where: { id: device.id },
+        data: { lastSeenAt: new Date() },
+      });
+    }
+
+    if (user.role === 'CASHIER' && !device.isAuthorized) {
+      return res.status(403).json({
+        success: false,
+        code: 'DEVICE_NOT_AUTHORIZED',
+        message: 'This device is not authorized for cashier login. Ask an administrator to approve it.',
+        data: { deviceId: device.deviceKey, deviceName: device.name },
+      });
+    }
+
     const token = jwt.sign(
-      { userId: user.id, username: user.username, role: user.role },
+      { userId: user.id, username: user.username, role: user.role, deviceId: deviceKey },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
@@ -61,6 +91,40 @@ exports.login = async (req, res, next) => {
         },
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin: list devices that have attempted to access the POS.
+exports.getDevices = async (req, res, next) => {
+  try {
+    const devices = await prisma.authorizedDevice.findMany({ orderBy: [{ isAuthorized: 'asc' }, { updatedAt: 'desc' }] });
+    res.json({ success: true, data: devices });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin: authorize/revoke and rename a POS device.
+exports.updateDevice = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { name, isAuthorized } = req.body;
+    const data = {};
+    if (name !== undefined) data.name = String(name).trim().slice(0, 100) || 'Unnamed POS device';
+    if (isAuthorized !== undefined) data.isAuthorized = Boolean(isAuthorized);
+
+    const device = await prisma.authorizedDevice.update({ where: { id }, data });
+    await createAuditLog({
+      userId: req.user.id,
+      action: device.isAuthorized ? 'DEVICE_AUTHORIZED' : 'DEVICE_REVOKED',
+      entity: 'AuthorizedDevice',
+      entityId: device.id,
+      details: { name: device.name, deviceKey: device.deviceKey },
+      ipAddress: req.ip,
+    });
+    res.json({ success: true, message: device.isAuthorized ? 'Device authorized.' : 'Device access revoked.', data: device });
   } catch (error) {
     next(error);
   }

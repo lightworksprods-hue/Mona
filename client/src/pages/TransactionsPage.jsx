@@ -3,6 +3,7 @@ import { api } from '../services/api';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 import ReceiptModal from '../components/ReceiptModal';
 import { useAuth } from '../context/AuthContext';
+import { downloadCsv, printReport } from '../utils/reportExport';
 
 export default function TransactionsPage({ storeInfo }) {
   const { isAdmin } = useAuth();
@@ -91,6 +92,45 @@ export default function TransactionsPage({ storeInfo }) {
     }
   };
 
+  const exportTransactionsCsv = () => {
+    downloadCsv(`mona-transactions-${new Date().toISOString().slice(0, 10)}.csv`, [{
+      title: 'Sales Transactions',
+      headers: ['Transaction', 'Date', 'Cashier', 'Items', 'Payment method', 'Total', 'Status'],
+      rows: sales.map((sale) => [
+        sale.transactionNumber,
+        formatDateTime(sale.createdAt),
+        sale.cashier?.fullName || sale.cashier?.username || '',
+        sale.items ? sale.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0,
+        sale.paymentMethod,
+        sale.totalAmount,
+        sale.status,
+      ]),
+    }]);
+  };
+
+  const printTransactionsReport = () => {
+    printReport({
+      title: 'Transaction History',
+      subtitle: startDate || endDate ? `${startDate || 'Start'} to ${endDate || 'Today'}` : 'Current filtered transactions',
+      summary: [
+        ['Transactions', sales.length],
+        ['Sales total', formatCurrency(sales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0))],
+        ['Completed', sales.filter((sale) => sale.status === 'COMPLETED').length],
+        ['Refunded', sales.filter((sale) => sale.status !== 'COMPLETED').length],
+      ],
+      columns: ['Transaction', 'Date', 'Cashier', 'Items', 'Method', 'Total', 'Status'],
+      rows: sales.map((sale) => [
+        sale.transactionNumber,
+        formatDateTime(sale.createdAt),
+        sale.cashier?.fullName || sale.cashier?.username || '',
+        sale.items ? sale.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0,
+        sale.paymentMethod,
+        formatCurrency(sale.totalAmount),
+        sale.status,
+      ]),
+    });
+  };
+
   const handleOpenRefund = async (sale) => {
     setRefundLoading(true);
     try {
@@ -145,9 +185,14 @@ export default function TransactionsPage({ storeInfo }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div className="pos-panel-header" style={{ borderRadius: 'var(--radius-sm)' }}>
         <h1 className="pos-panel-title" style={{ fontSize: '18px' }}>Sales & Transaction History</h1>
-        <button className="btn btn-secondary btn-sm" onClick={loadSales}>
-          Refresh History
-        </button>
+        <div className="report-toolbar-actions">
+          {isAdmin && <>
+            <button className="btn btn-secondary btn-sm" onClick={exportTransactionsCsv}>Export CSV</button>
+            <button className="btn btn-primary btn-sm" onClick={printTransactionsReport}>Print / PDF</button>
+            <span className="export-toolbar-divider" />
+          </>}
+          <button className="btn btn-secondary btn-sm" onClick={loadSales}>Refresh History</button>
+        </div>
       </div>
 
       {/* Filter Strip */}

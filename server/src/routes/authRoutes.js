@@ -15,5 +15,7 @@ router.get('/me', authenticate, authController.getMe);
 router.get('/users', authenticate, requireRole('ADMIN'), authController.getUsers);
 router.post('/users', authenticate, requireRole('ADMIN'), registerValidator, validate, authController.createUser);
 router.put('/users/:id', authenticate, requireRole('ADMIN'), updateUserValidator, validate, authController.updateUser);
+router.get('/devices', authenticate, requireRole('ADMIN'), authController.getDevices);
+router.put('/devices/:id', authenticate, requireRole('ADMIN'), authController.updateDevice);
 
 module.exports = router;

@@ -3,7 +3,7 @@ import { api } from '../services/api';
 import { formatDateTime } from '../utils/formatters';
 
 export default function SettingsPage({ storeInfo, onStoreUpdate }) {
-  const [activeTab, setActiveTab] = useState('store'); // 'store' | 'users' | 'audit'
+  const [activeTab, setActiveTab] = useState('store'); // 'store' | 'users' | 'devices' | 'audit'
   const [formData, setFormData] = useState({
     storeName: '',
     storeAddress: '',
@@ -15,6 +15,7 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
 
   // User Management State
   const [users, setUsers] = useState([]);
+  const [devices, setDevices] = useState([]);
   const [newUser, setNewUser] = useState({
     username: '',
     fullName: '',
@@ -44,6 +45,7 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
 
   useEffect(() => {
     if (activeTab === 'users') loadUsers();
+    if (activeTab === 'devices') loadDevices();
     if (activeTab === 'audit') loadAuditLogs();
   }, [activeTab]);
 
@@ -53,6 +55,25 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
       setUsers(res.data || []);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const loadDevices = async () => {
+    try {
+      const res = await api.getDevices();
+      setDevices(res.data || []);
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to load authorized devices');
+    }
+  };
+
+  const updateDevice = async (device, changes) => {
+    try {
+      await api.updateDevice(device.id, changes);
+      setSuccessMessage(changes.isAuthorized ? `Device "${device.name}" authorized.` : `Device "${device.name}" revoked.`);
+      loadDevices();
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to update device');
     }
   };
 
@@ -123,6 +144,12 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
             onClick={() => setActiveTab('users')}
           >
             User Accounts
+          </button>
+          <button
+            className={`btn ${activeTab === 'devices' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+            onClick={() => setActiveTab('devices')}
+          >
+            Authorized Devices
           </button>
           <button
             className={`btn ${activeTab === 'audit' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
@@ -323,6 +350,33 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
       )}
 
       {/* TAB 3: AUDIT LOGS */}
+      {activeTab === 'devices' && (
+        <div className="pos-panel">
+          <div className="pos-panel-header">
+            <div>
+              <span className="pos-panel-title">Cashier Device Authorization</span>
+              <p style={{ margin: '4px 0 0', color: 'var(--secondary-text)', fontSize: '12px' }}>Only authorized devices can be used for cashier login. Unknown devices appear here after a login attempt.</p>
+            </div>
+            <button className="btn btn-secondary btn-sm" onClick={loadDevices}>Refresh</button>
+          </div>
+          <div className="table-container">
+            <table className="pos-table">
+              <thead><tr><th>Device name</th><th>Device ID</th><th>Last seen</th><th>Status</th><th style={{ textAlign: 'center' }}>Action</th></tr></thead>
+              <tbody>{devices.length === 0 ? <tr><td colSpan="5" className="empty-state">No devices have requested access yet.</td></tr> : devices.map((device) => (
+                <tr key={device.id}>
+                  <td><strong>{device.name}</strong></td>
+                  <td style={{ maxWidth: '280px', wordBreak: 'break-all', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>{device.deviceKey}</td>
+                  <td>{device.lastSeenAt ? formatDateTime(device.lastSeenAt) : 'Never'}</td>
+                  <td><span className="badge-tag" style={{ backgroundColor: device.isAuthorized ? 'var(--light-pink)' : 'var(--warning-bg)', color: device.isAuthorized ? 'var(--dark-pink)' : 'var(--warning)' }}>{device.isAuthorized ? 'Authorized' : 'Pending'}</span></td>
+                  <td style={{ textAlign: 'center' }}><button className={`btn btn-sm ${device.isAuthorized ? 'btn-secondary' : 'btn-primary'}`} onClick={() => updateDevice(device, { isAuthorized: !device.isAuthorized })}>{device.isAuthorized ? 'Revoke' : 'Authorize'}</button></td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: AUDIT LOGS */}
       {activeTab === 'audit' && (
         <div className="pos-panel">
           <div className="pos-panel-header">

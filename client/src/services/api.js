@@ -1,4 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const DEVICE_ID_KEY = 'mona_device_id';
 
 async function request(endpoint, options = {}) {
   const token = localStorage.getItem('pos_token');
@@ -6,6 +7,7 @@ async function request(endpoint, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(localStorage.getItem(DEVICE_ID_KEY) ? { 'X-Device-ID': localStorage.getItem(DEVICE_ID_KEY) } : {}),
     ...options.headers,
   };
 
@@ -28,6 +30,7 @@ async function request(endpoint, options = {}) {
     }
     const error = new Error(data.message || `Request failed with status ${response.status}`);
     error.status = response.status;
+    error.code = data.code;
     error.data = data;
     throw error;
   }
@@ -42,6 +45,8 @@ export const api = {
   getUsers: () => request('/auth/users'),
   createUser: (userData) => request('/auth/users', { method: 'POST', body: JSON.stringify(userData) }),
   updateUser: (id, userData) => request(`/auth/users/${id}`, { method: 'PUT', body: JSON.stringify(userData) }),
+  getDevices: () => request('/auth/devices'),
+  updateDevice: (id, deviceData) => request(`/auth/devices/${id}`, { method: 'PUT', body: JSON.stringify(deviceData) }),
 
   // Products & Barcode Scanner
   generateBarcode: () => request('/products/barcode/generate'),
