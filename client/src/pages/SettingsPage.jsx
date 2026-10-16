@@ -3,7 +3,7 @@ import { api } from '../services/api';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 
 export default function SettingsPage({ storeInfo, onStoreUpdate }) {
-  const [activeTab, setActiveTab] = useState('store'); // 'store' | 'users' | 'devices' | 'customers' | 'audit'
+  const [activeTab, setActiveTab] = useState('store'); // 'store' | 'users' | 'devices' | 'customers' | 'rewards' | 'audit'
   const [formData, setFormData] = useState({
     storeName: '',
     storeAddress: '',
@@ -20,6 +20,9 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
   const [devices, setDevices] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [customerSearch, setCustomerSearch] = useState('');
+  const [products, setProducts] = useState([]);
+  const [rewards, setRewards] = useState([]);
+  const [rewardForm, setRewardForm] = useState({ productId: '', pointsCost: '' });
   const [newUser, setNewUser] = useState({
     username: '',
     fullName: '',
@@ -53,6 +56,7 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
     if (activeTab === 'users') loadUsers();
     if (activeTab === 'devices') loadDevices();
     if (activeTab === 'customers') loadCustomers();
+    if (activeTab === 'rewards') loadRewards();
     if (activeTab === 'audit') loadAuditLogs();
   }, [activeTab]);
 
@@ -80,6 +84,52 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
       setCustomers(res.data || []);
     } catch (err) {
       setErrorMessage(err.message || 'Failed to load customers');
+    }
+  };
+
+  const loadRewards = async () => {
+    try {
+      const [rewardResponse, productResponse] = await Promise.all([
+        api.getLoyaltyRewards(),
+        api.getProducts({ activeOnly: true }),
+      ]);
+      setRewards(rewardResponse.data || []);
+      setProducts(productResponse.data || []);
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to load loyalty rewards');
+    }
+  };
+
+  const handleCreateReward = async (event) => {
+    event.preventDefault();
+    setErrorMessage('');
+    try {
+      await api.createLoyaltyReward(rewardForm);
+      setRewardForm({ productId: '', pointsCost: '' });
+      setSuccessMessage('Loyalty reward added.');
+      loadRewards();
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to add loyalty reward');
+    }
+  };
+
+  const handleToggleReward = async (reward) => {
+    try {
+      await api.updateLoyaltyReward(reward.id, { isActive: !reward.isActive });
+      loadRewards();
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to update loyalty reward');
+    }
+  };
+
+  const handleDeleteReward = async (reward) => {
+    if (!window.confirm(`Remove ${reward.product.name} from the rewards catalog?`)) return;
+    try {
+      await api.deleteLoyaltyReward(reward.id);
+      setSuccessMessage('Loyalty reward removed.');
+      loadRewards();
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to remove loyalty reward');
     }
   };
 
@@ -172,6 +222,12 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
             onClick={() => setActiveTab('customers')}
           >
             Customers & Loyalty
+          </button>
+          <button
+            className={`btn ${activeTab === 'rewards' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+            onClick={() => setActiveTab('rewards')}
+          >
+            Rewards Catalog
           </button>
           <button
             className={`btn ${activeTab === 'audit' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
@@ -441,6 +497,54 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'rewards' && (
+        <div className="loyalty-rewards-admin">
+          <div className="pos-panel">
+            <div className="pos-panel-header customer-management-header">
+              <div>
+                <span className="pos-panel-title">Points Redemption Rules</span>
+                <p>Choose which products customers can claim and set the points required for one unit.</p>
+              </div>
+            </div>
+            <form className="reward-create-form" onSubmit={handleCreateReward}>
+              <label className="field-label">Product
+                <select className="form-control" required value={rewardForm.productId} onChange={(e) => setRewardForm({ ...rewardForm, productId: e.target.value })}>
+                  <option value="">Select a product</option>
+                  {products.filter((product) => !rewards.some((reward) => reward.productId === product.id)).map((product) => (
+                    <option key={product.id} value={product.id}>{product.name} — {formatCurrency(product.sellingPrice)}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="field-label">Points required
+                <input className="form-control" type="number" min="1" step="1" required value={rewardForm.pointsCost} onChange={(e) => setRewardForm({ ...rewardForm, pointsCost: e.target.value })} placeholder="e.g. 100" />
+              </label>
+              <button className="btn btn-primary" type="submit">Add reward</button>
+            </form>
+          </div>
+          <div className="pos-panel">
+            <div className="table-container">
+              <table className="pos-table">
+                <thead><tr><th>Product</th><th>Points required</th><th>Stock</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody>
+                  {rewards.length === 0 ? <tr><td colSpan="5" className="empty-state">No rewards configured yet.</td></tr> : rewards.map((reward) => (
+                    <tr key={reward.id}>
+                      <td><strong>{reward.product.name}</strong><br /><small>{reward.product.sku}</small></td>
+                      <td><span className="customer-points-badge">{reward.pointsCost} pts</span></td>
+                      <td>{Number(reward.product.stockQuantity || 0).toLocaleString()}</td>
+                      <td>{reward.isActive ? 'Active' : 'Disabled'}</td>
+                      <td>
+                        <button className="btn btn-secondary btn-sm" onClick={() => handleToggleReward(reward)}>{reward.isActive ? 'Disable' : 'Enable'}</button>{' '}
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDeleteReward(reward)}>Remove</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

@@ -13,6 +13,7 @@
     "migrate:quantities": "node scripts/migrateDecimalQuantities.js",
     "migrate:devices": "node scripts/migrateDeviceAuthorization.js",
     "migrate:loyalty": "node scripts/migrateCustomerLoyalty.js",
+    "migrate:rewards": "node scripts/migrateLoyaltyRewards.js",
     "test": "node test/api.test.js"
   },
   "keywords": ["counter-pos", "point-of-sale", "express", "prisma", "supabase"],

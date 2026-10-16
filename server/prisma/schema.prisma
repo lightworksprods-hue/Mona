@@ -117,6 +117,7 @@ model Product {
 
   saleItems      SaleItem[]
   inventoryMoves InventoryMovement[]
+  loyaltyReward  LoyaltyReward?
 
   @@index([barcode])
   @@index([sku])
@@ -135,6 +136,7 @@ model Customer {
 
   sales               Sale[]
   loyaltyTransactions LoyaltyTransaction[]
+  loyaltyRedemptions  LoyaltyRedemption[]
 
   @@index([phone])
   @@map("customers")
@@ -156,6 +158,35 @@ model LoyaltyTransaction {
   @@index([customerId, createdAt])
   @@index([saleId])
   @@map("loyalty_transactions")
+}
+
+model LoyaltyReward {
+  id          String   @id @default(uuid())
+  productId   String   @unique
+  pointsCost  Int
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  redemptions LoyaltyRedemption[]
+
+  @@map("loyalty_rewards")
+}
+
+model LoyaltyRedemption {
+  id          String   @id @default(uuid())
+  customerId  String
+  rewardId    String
+  pointsSpent Int
+  quantity    Int      @default(1)
+  createdAt   DateTime @default(now())
+
+  customer Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  reward   LoyaltyReward @relation(fields: [rewardId], references: [id], onDelete: Restrict)
+
+  @@index([customerId, createdAt])
+  @@map("loyalty_redemptions")
 }
 
 model Sale {

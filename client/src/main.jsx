@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
+import PointsTrackerPage from './pages/PointsTrackerPage.jsx';
 import { AuthProvider } from './context/AuthContext';
 import './styles/pos.css';
 
@@ -10,8 +11,12 @@ if ('serviceWorker' in navigator) {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    {window.location.pathname === '/points' ? (
+      <PointsTrackerPage />
+    ) : (
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    )}
   </React.StrictMode>
 );

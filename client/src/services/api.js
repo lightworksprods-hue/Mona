@@ -87,6 +87,12 @@ export const api = {
 
   // Customer loyalty
   lookupCustomer: (phone) => request(`/customers/lookup?phone=${encodeURIComponent(phone)}`),
+  lookupCustomerPoints: (phone) => request(`/customers/points?phone=${encodeURIComponent(phone)}`),
+  getLoyaltyRewards: () => request('/customers/rewards'),
+  createLoyaltyReward: (payload) => request('/customers/rewards', { method: 'POST', body: JSON.stringify(payload) }),
+  updateLoyaltyReward: (id, payload) => request(`/customers/rewards/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteLoyaltyReward: (id) => request(`/customers/rewards/${id}`, { method: 'DELETE' }),
+  redeemLoyaltyReward: (payload) => request('/customers/redeem', { method: 'POST', body: JSON.stringify(payload) }),
   getCustomers: (search = '') => request(`/customers${search ? `?search=${encodeURIComponent(search)}` : ''}`),
 
   // Inventory

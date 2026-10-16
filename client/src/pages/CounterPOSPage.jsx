@@ -31,6 +31,9 @@ export default function CounterPOSPage({ storeInfo }) {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [loyaltyCustomer, setLoyaltyCustomer] = useState(null);
+  const [customerRewards, setCustomerRewards] = useState([]);
+  const [selectedRewardId, setSelectedRewardId] = useState('');
+  const [isRedeemingReward, setIsRedeemingReward] = useState(false);
   const [customerLookupMessage, setCustomerLookupMessage] = useState('');
 
   // Status & Modals
@@ -58,6 +61,8 @@ export default function CounterPOSPage({ storeInfo }) {
     const phone = customerPhone.trim();
     if (!phone) {
       setLoyaltyCustomer(null);
+      setCustomerRewards([]);
+      setSelectedRewardId('');
       setCustomerLookupMessage('');
       return;
     }
@@ -68,11 +73,36 @@ export default function CounterPOSPage({ storeInfo }) {
     try {
       const response = await api.lookupCustomer(phone);
       setLoyaltyCustomer(response.data);
+      setCustomerRewards(response.rewards || []);
+      setSelectedRewardId('');
       if (response.data?.fullName) setCustomerName(response.data.fullName);
       setCustomerLookupMessage(response.data ? `${response.data.pointsBalance} points available` : 'New customer — points will start after this sale.');
     } catch (error) {
       setLoyaltyCustomer(null);
+      setCustomerRewards([]);
       setCustomerLookupMessage(error.message || 'Unable to look up customer.');
+    }
+  };
+
+  const handleRewardRedemption = async () => {
+    if (!loyaltyCustomer || !selectedRewardId) return;
+    setIsRedeemingReward(true);
+    setErrorMessage('');
+    try {
+      const response = await api.redeemLoyaltyReward({ phone: customerPhone.trim(), rewardId: selectedRewardId });
+      setLoyaltyCustomer((current) => ({
+        ...current,
+        pointsBalance: Number(current.pointsBalance) - Number(response.data.pointsSpent),
+      }));
+      setCustomerRewards((current) => current.map((reward) => reward.id === selectedRewardId
+        ? { ...reward, product: { ...reward.product, stockQuantity: Number(reward.product.stockQuantity) - 1 } }
+        : reward));
+      setSelectedRewardId('');
+      setCustomerLookupMessage(`Reward redeemed. ${Number(response.data.pointsSpent)} points spent.`);
+    } catch (error) {
+      setErrorMessage(error.message || 'Unable to redeem reward.');
+    } finally {
+      setIsRedeemingReward(false);
     }
   };
 
@@ -598,7 +628,7 @@ export default function CounterPOSPage({ storeInfo }) {
               className="form-control"
               placeholder="Phone number for points"
               value={customerPhone}
-              onChange={(event) => { setCustomerPhone(event.target.value); setLoyaltyCustomer(null); setCustomerLookupMessage(''); }}
+              onChange={(event) => { setCustomerPhone(event.target.value); setLoyaltyCustomer(null); setCustomerRewards([]); setSelectedRewardId(''); setCustomerLookupMessage(''); }}
               onBlur={handleCustomerLookup}
             />
           <label className="field-label" htmlFor="customer-name">Full name <span className="optional-label">(optional)</span></label>
@@ -612,6 +642,24 @@ export default function CounterPOSPage({ storeInfo }) {
             maxLength={100}
           />
           {customerLookupMessage && <small className={loyaltyCustomer ? 'customer-points-success' : 'customer-points-hint'}>{customerLookupMessage}</small>}
+          {loyaltyCustomer && customerRewards.length > 0 && (
+            <div className="customer-reward-redemption">
+              <label className="field-label" htmlFor="customer-reward">Redeem points</label>
+              <div className="customer-reward-redemption-row">
+                <select id="customer-reward" className="form-control" value={selectedRewardId} onChange={(event) => setSelectedRewardId(event.target.value)}>
+                  <option value="">Select a reward</option>
+                  {customerRewards.map((reward) => (
+                    <option key={reward.id} value={reward.id} disabled={Number(reward.product.stockQuantity || 0) < 1 || Number(loyaltyCustomer.pointsBalance || 0) < reward.pointsCost}>
+                      {reward.product.name} — {reward.pointsCost} pts{Number(reward.product.stockQuantity || 0) < 1 ? ' (out of stock)' : ''}
+                    </option>
+                  ))}
+                </select>
+                <button type="button" className="btn btn-secondary btn-sm" disabled={!selectedRewardId || isRedeemingReward} onClick={handleRewardRedemption}>
+                  {isRedeemingReward ? 'Redeeming...' : 'Redeem'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Big Grand Total Box */}
