@@ -47,6 +47,10 @@ export default function ProductsPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isGeneratingBarcode, setIsGeneratingBarcode] = useState(false);
+  const [categoryName, setCategoryName] = useState('');
+  const [categoryDescription, setCategoryDescription] = useState('');
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [isImportingProducts, setIsImportingProducts] = useState(false);
 
   // Modal / Form state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -101,6 +105,161 @@ export default function ProductsPage() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleCreateCategory = async (event) => {
+    event.preventDefault();
+    const name = categoryName.trim();
+    if (!name) return;
+
+    setErrorMessage('');
+    setSuccessMessage('');
+    setIsCreatingCategory(true);
+
+    try {
+      await api.createCategory({
+        name,
+        description: categoryDescription.trim(),
+      });
+      setCategoryName('');
+      setCategoryDescription('');
+      await loadCategories();
+      setSuccessMessage(`Category "${name}" created successfully.`);
+    } catch (err) {
+      setErrorMessage(err.message || 'Error creating category');
+    } finally {
+      setIsCreatingCategory(false);
+    }
+  };
+
+  const parseCsv = (text) => {
+    const rows = [];
+    let row = [];
+    let value = '';
+    let quoted = false;
+
+    for (let index = 0; index < text.length; index += 1) {
+      const character = text[index];
+      const nextCharacter = text[index + 1];
+      if (character === '"' && quoted && nextCharacter === '"') {
+        value += '"';
+        index += 1;
+      } else if (character === '"') {
+        quoted = !quoted;
+      } else if (character === ',' && !quoted) {
+        row.push(value.trim());
+        value = '';
+      } else if ((character === '\n' || character === '\r') && !quoted) {
+        if (character === '\r' && nextCharacter === '\n') index += 1;
+        row.push(value.trim());
+        if (row.some((cell) => cell !== '')) rows.push(row);
+        row = [];
+        value = '';
+      } else {
+        value += character;
+      }
+    }
+
+    row.push(value.trim());
+    if (row.some((cell) => cell !== '')) rows.push(row);
+    return rows;
+  };
+
+  const handleImportProducts = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setErrorMessage('');
+    setSuccessMessage('');
+    setIsImportingProducts(true);
+
+    try {
+      const rows = parseCsv(await file.text());
+      if (rows.length < 2) throw new Error('The CSV must contain a header row and at least one product row.');
+
+      const headers = rows[0].map((header) => header.toLowerCase().replace(/[^a-z0-9]/g, ''));
+      const requiredHeaders = ['name', 'sku', 'barcode', 'costprice', 'sellingprice'];
+      const missingHeaders = requiredHeaders.filter((header) => !headers.includes(header));
+      if (missingHeaders.length) {
+        throw new Error(`Missing required CSV columns: ${missingHeaders.join(', ')}`);
+      }
+
+      const categoryByName = new Map(categories.map((category) => [category.name.trim().toLowerCase(), category]));
+      const importedProducts = [];
+      const errors = [];
+
+      rows.slice(1).forEach((cells, rowIndex) => {
+        const rowNumber = rowIndex + 2;
+        const record = Object.fromEntries(headers.map((header, index) => [header, cells[index] || '']));
+        const requiredValues = requiredHeaders.filter((header) => !record[header]);
+        const costPrice = Number(record.costprice);
+        const sellingPrice = Number(record.sellingprice);
+
+        if (requiredValues.length) {
+          errors.push(`Row ${rowNumber}: missing ${requiredValues.join(', ')}`);
+          return;
+        }
+        if (!Number.isFinite(costPrice) || costPrice < 0 || !Number.isFinite(sellingPrice) || sellingPrice < 0) {
+          errors.push(`Row ${rowNumber}: costPrice and sellingPrice must be non-negative numbers`);
+          return;
+        }
+
+        const categoryNameValue = record.category || record.categoryname;
+        const category = categoryNameValue ? categoryByName.get(categoryNameValue.toLowerCase()) : null;
+        if (categoryNameValue && !category) {
+          errors.push(`Row ${rowNumber}: category "${categoryNameValue}" was not found`);
+          return;
+        }
+
+        importedProducts.push({
+          name: record.name,
+          sku: record.sku,
+          barcode: record.barcode,
+          categoryId: category?.id || '',
+          description: record.description || '',
+          costPrice,
+          sellingPrice,
+          stockQuantity: record.stockquantity || 0,
+          minStockLevel: record.minstocklevel || 5,
+          unit: record.unit || 'pcs',
+          taxRate: record.taxrate || 0,
+          buyOneTakeOne: ['true', '1', 'yes'].includes((record.buyonetakeone || '').toLowerCase()),
+          isActive: !['false', '0', 'no'].includes((record.isactive || '').toLowerCase()),
+        });
+      });
+
+      let createdCount = 0;
+      for (const product of importedProducts) {
+        try {
+          await api.createProduct(product);
+          createdCount += 1;
+        } catch (error) {
+          errors.push(`SKU ${product.sku}: ${error.message || 'could not be created'}`);
+        }
+      }
+
+      await loadProducts();
+      if (errors.length) {
+        setErrorMessage(`Imported ${createdCount} product${createdCount === 1 ? '' : 's'} with ${errors.length} issue${errors.length === 1 ? '' : 's'}: ${errors.join('; ')}`);
+      } else {
+        setSuccessMessage(`Successfully imported ${createdCount} product${createdCount === 1 ? '' : 's'}.`);
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'Unable to import products.');
+    } finally {
+      setIsImportingProducts(false);
+    }
+  };
+
+  const downloadImportTemplate = () => {
+    const template = 'name,sku,barcode,category,description,costPrice,sellingPrice,stockQuantity,minStockLevel,unit,taxRate,buyOneTakeOne,isActive\nSample Product,SAMPLE-001,2000000000015,Beverages,Example item,10,15,20,5,pcs,0,false,true\n';
+    const url = URL.createObjectURL(new Blob([template], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'products-import-template.csv';
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleOpenAdd = () => {
@@ -193,6 +352,68 @@ export default function ProductsPage() {
         <button id="btn-add-product" className="btn btn-primary" onClick={handleOpenAdd}>
           + Add Product
         </button>
+      </div>
+
+      <div className="pos-panel" style={{ padding: '16px' }}>
+        <div style={{ marginBottom: '10px' }}>
+          <h2 className="pos-panel-title" style={{ fontSize: '15px' }}>Add Category</h2>
+          <p style={{ margin: '4px 0 0', color: 'var(--secondary-text)', fontSize: '12px' }}>
+            Create a category for the product catalog.
+          </p>
+        </div>
+        <form onSubmit={handleCreateCategory} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'end' }}>
+          <div className="form-group" style={{ flex: '1 1 220px', marginBottom: 0 }}>
+            <label className="field-label" htmlFor="category-name">Category Name *</label>
+            <input
+              id="category-name"
+              type="text"
+              required
+              className="form-control"
+              placeholder="e.g. Frozen Foods"
+              value={categoryName}
+              onChange={(event) => setCategoryName(event.target.value)}
+            />
+          </div>
+          <div className="form-group" style={{ flex: '2 1 300px', marginBottom: 0 }}>
+            <label className="field-label" htmlFor="category-description">Description (Optional)</label>
+            <input
+              id="category-description"
+              type="text"
+              className="form-control"
+              placeholder="Short description"
+              value={categoryDescription}
+              onChange={(event) => setCategoryDescription(event.target.value)}
+            />
+          </div>
+          <button id="btn-add-category" type="submit" className="btn btn-primary" disabled={isCreatingCategory}>
+            {isCreatingCategory ? 'Adding...' : 'Add Category'}
+          </button>
+        </form>
+      </div>
+
+      <div className="pos-panel" style={{ padding: '16px' }}>
+        <div style={{ marginBottom: '10px' }}>
+          <h2 className="pos-panel-title" style={{ fontSize: '15px' }}>Bulk Import Products</h2>
+          <p style={{ margin: '4px 0 0', color: 'var(--secondary-text)', fontSize: '12px' }}>
+            Upload a CSV file. Required columns: name, sku, barcode, costPrice, sellingPrice. Category values must match an existing category name.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <label className="btn btn-primary" htmlFor="products-csv-import">
+            {isImportingProducts ? 'Importing...' : 'Choose CSV File'}
+          </label>
+          <input
+            id="products-csv-import"
+            type="file"
+            accept=".csv,text/csv"
+            onChange={handleImportProducts}
+            disabled={isImportingProducts}
+            style={{ display: 'none' }}
+          />
+          <button type="button" className="btn btn-secondary" onClick={downloadImportTemplate} disabled={isImportingProducts}>
+            Download CSV Template
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
