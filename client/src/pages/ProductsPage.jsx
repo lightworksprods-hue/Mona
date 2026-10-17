@@ -50,6 +50,8 @@ export default function ProductsPage() {
   const [categoryName, setCategoryName] = useState('');
   const [categoryDescription, setCategoryDescription] = useState('');
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
   const [isImportingProducts, setIsImportingProducts] = useState(false);
 
   // Modal / Form state
@@ -107,7 +109,13 @@ export default function ProductsPage() {
     }
   };
 
-  const handleCreateCategory = async (event) => {
+  const handleEditCategory = (category) => {
+    setEditingCategory(category);
+    setCategoryName(category.name);
+    setCategoryDescription(category.description || '');
+  };
+
+  const handleSaveCategory = async (event) => {
     event.preventDefault();
     const name = categoryName.trim();
     if (!name) return;
@@ -117,19 +125,42 @@ export default function ProductsPage() {
     setIsCreatingCategory(true);
 
     try {
-      await api.createCategory({
-        name,
-        description: categoryDescription.trim(),
-      });
+      if (editingCategory) {
+        await api.updateCategory(editingCategory.id, {
+          name,
+          description: categoryDescription.trim(),
+          isActive: editingCategory.isActive,
+        });
+        setSuccessMessage(`Category "${name}" updated successfully.`);
+      } else {
+        await api.createCategory({ name, description: categoryDescription.trim() });
+        setSuccessMessage(`Category "${name}" created successfully.`);
+      }
       setCategoryName('');
       setCategoryDescription('');
+      setEditingCategory(null);
       await loadCategories();
-      setSuccessMessage(`Category "${name}" created successfully.`);
     } catch (err) {
-      setErrorMessage(err.message || 'Error creating category');
+      setErrorMessage(err.message || 'Error saving category');
     } finally {
       setIsCreatingCategory(false);
     }
+  };
+
+  const handleToggleCategory = async (category) => {
+    try {
+      await api.updateCategory(category.id, { isActive: !category.isActive });
+      await loadCategories();
+      setSuccessMessage(`Category "${category.name}" ${category.isActive ? 'deactivated' : 'activated'}.`);
+    } catch (err) {
+      setErrorMessage(err.message || 'Error updating category');
+    }
+  };
+
+  const resetCategoryForm = () => {
+    setEditingCategory(null);
+    setCategoryName('');
+    setCategoryDescription('');
   };
 
   const parseCsv = (text) => {
@@ -356,43 +387,6 @@ export default function ProductsPage() {
 
       <div className="pos-panel" style={{ padding: '16px' }}>
         <div style={{ marginBottom: '10px' }}>
-          <h2 className="pos-panel-title" style={{ fontSize: '15px' }}>Add Category</h2>
-          <p style={{ margin: '4px 0 0', color: 'var(--secondary-text)', fontSize: '12px' }}>
-            Create a category for the product catalog.
-          </p>
-        </div>
-        <form onSubmit={handleCreateCategory} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'end' }}>
-          <div className="form-group" style={{ flex: '1 1 220px', marginBottom: 0 }}>
-            <label className="field-label" htmlFor="category-name">Category Name *</label>
-            <input
-              id="category-name"
-              type="text"
-              required
-              className="form-control"
-              placeholder="e.g. Frozen Foods"
-              value={categoryName}
-              onChange={(event) => setCategoryName(event.target.value)}
-            />
-          </div>
-          <div className="form-group" style={{ flex: '2 1 300px', marginBottom: 0 }}>
-            <label className="field-label" htmlFor="category-description">Description (Optional)</label>
-            <input
-              id="category-description"
-              type="text"
-              className="form-control"
-              placeholder="Short description"
-              value={categoryDescription}
-              onChange={(event) => setCategoryDescription(event.target.value)}
-            />
-          </div>
-          <button id="btn-add-category" type="submit" className="btn btn-primary" disabled={isCreatingCategory}>
-            {isCreatingCategory ? 'Adding...' : 'Add Category'}
-          </button>
-        </form>
-      </div>
-
-      <div className="pos-panel" style={{ padding: '16px' }}>
-        <div style={{ marginBottom: '10px' }}>
           <h2 className="pos-panel-title" style={{ fontSize: '15px' }}>Bulk Import Products</h2>
           <p style={{ margin: '4px 0 0', color: 'var(--secondary-text)', fontSize: '12px' }}>
             Upload a CSV file. Required columns: name, sku, barcode, costPrice, sellingPrice. Category values must match an existing category name.
@@ -439,6 +433,9 @@ export default function ProductsPage() {
             </option>
           ))}
         </select>
+        <button type="button" className="btn btn-secondary" onClick={() => setIsCategoryModalOpen(true)}>
+          Manage Categories
+        </button>
       </div>
 
       {errorMessage && <div className="alert alert-error">{errorMessage}</div>}
@@ -538,6 +535,87 @@ export default function ProductsPage() {
           </table>
         </div>
       </div>
+
+      {isCategoryModalOpen && (
+        <div className="modal-overlay" onMouseDown={() => { resetCategoryForm(); setIsCategoryModalOpen(false); }}>
+          <div className="modal-dialog" style={{ maxWidth: '620px' }} onMouseDown={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Manage Categories</h2>
+              <button
+                className="modal-close-btn"
+                type="button"
+                onClick={() => { resetCategoryForm(); setIsCategoryModalOpen(false); }}
+                aria-label="Close category management"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+              <form onSubmit={handleSaveCategory} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'end', marginBottom: '18px' }}>
+                <div className="form-group" style={{ flex: '1 1 200px', marginBottom: 0 }}>
+                  <label className="field-label" htmlFor="category-name">Category Name *</label>
+                  <input
+                    id="category-name"
+                    type="text"
+                    required
+                    className="form-control"
+                    placeholder="e.g. Frozen Foods"
+                    value={categoryName}
+                    onChange={(event) => setCategoryName(event.target.value)}
+                  />
+                </div>
+                <div className="form-group" style={{ flex: '1 1 240px', marginBottom: 0 }}>
+                  <label className="field-label" htmlFor="category-description">Description (Optional)</label>
+                  <input
+                    id="category-description"
+                    type="text"
+                    className="form-control"
+                    placeholder="Short description"
+                    value={categoryDescription}
+                    onChange={(event) => setCategoryDescription(event.target.value)}
+                  />
+                </div>
+                <button id="btn-add-category" type="submit" className="btn btn-primary" disabled={isCreatingCategory}>
+                  {isCreatingCategory ? 'Saving...' : editingCategory ? 'Update' : 'Add Category'}
+                </button>
+                {editingCategory && (
+                  <button type="button" className="btn btn-secondary" onClick={resetCategoryForm}>
+                    Cancel edit
+                  </button>
+                )}
+              </form>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {categories.length === 0 ? (
+                  <div className="page-state">No categories found.</div>
+                ) : categories.map((category) => (
+                  <div key={category.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderTop: '1px solid var(--border-color)' }}>
+                    <div>
+                      <strong>{category.name}</strong>
+                      <div style={{ fontSize: '12px', color: 'var(--secondary-text)' }}>
+                        {category.description || 'No description'} · {category._count?.products || 0} product{category._count?.products === 1 ? '' : 's'}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleEditCategory(category)}>
+                        Edit
+                      </button>
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleToggleCategory(category)}>
+                        {category.isActive ? 'Deactivate' : 'Activate'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={() => { resetCategoryForm(); setIsCategoryModalOpen(false); }}>
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add / Edit Product Modal */}
       {isModalOpen && (
