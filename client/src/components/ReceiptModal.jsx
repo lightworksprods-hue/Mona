@@ -101,7 +101,7 @@ export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onN
             )}
             {Number(saleData.taxTotal) > 0 && (
               <div className="receipt-row">
-                <span>VAT / Tax:</span>
+                <span>VAT included:</span>
                 <span>{formatCurrency(saleData.taxTotal)}</span>
               </div>
             )}

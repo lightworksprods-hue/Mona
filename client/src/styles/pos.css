@@ -1911,10 +1911,23 @@ body {
   letter-spacing: 0.01em;
 }
 
+/* Keep the workstation inside the available browser viewport. The POS panels
+   provide their own scrolling so the header and navigation stay anchored on
+   short laptop screens. */
+#root {
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+}
+
 .app-container {
   width: 100%;
   max-width: none;
   margin: 0;
+  height: 100%;
+  min-height: 0;
 }
 
 .top-bar {
@@ -1961,12 +1974,17 @@ body {
 }
 
 .main-viewport {
-  padding: 22px 28px 28px;
+  flex: 1;
+  min-height: 0;
+  padding: 16px 28px 20px;
+  overflow: hidden;
 }
 
 .pos-layout {
   grid-template-columns: minmax(0, 1fr) 400px;
   gap: 20px;
+  height: 100%;
+  min-height: 0;
 }
 
 .pos-layout.cart-expanded .scanner-strip,
@@ -1984,6 +2002,14 @@ body {
   border-color: var(--border-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
+}
+
+.pos-layout > .pos-panel {
+  min-height: 0;
+}
+
+.pos-layout > .pos-panel:first-child {
+  min-width: 0;
 }
 
 .pos-panel-header {
@@ -2051,7 +2077,7 @@ body {
 }
 
 .product-catalog-grid {
-  max-height: 370px;
+  max-height: min(370px, 34vh);
   padding-right: 5px;
 }
 
@@ -2088,6 +2114,12 @@ body {
   overflow: hidden;
 }
 
+.pos-layout > .summary-panel {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
 .summary-rows,
 .payment-section {
   padding-left: 18px;
@@ -2097,6 +2129,43 @@ body {
 .summary-rows { padding-top: 12px; padding-bottom: 12px; gap: 8px; }
 
 .customer-loyalty-box { margin: 10px 18px 8px; padding: 10px; }
+
+.customer-details-toggle {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--dark-pink);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-align: left;
+  cursor: pointer;
+}
+
+.customer-details-toggle span:last-child {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border: 1px solid var(--border-dark);
+  border-radius: 50%;
+  background: var(--white);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.customer-details-toggle:hover span:last-child,
+.customer-details-toggle:focus-visible span:last-child {
+  border-color: var(--primary-pink);
+  color: var(--dark-pink);
+}
 
 .payment-section { gap: 10px; padding-top: 10px; }
 
@@ -2113,13 +2182,81 @@ body {
 
 .grand-total-box {
   margin: 14px 18px;
-  border: 1px solid #f7a7c0;
-  border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #fff1f5, #fce7f3);
+  min-height: 86px;
+  padding: 12px 18px;
+  border: 2px solid #8db7e8;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0c4f9e, #123d79);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.16), 0 4px 10px rgba(12, 79, 158, 0.18);
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
 }
 
 .grand-total-value {
-  font-size: 30px;
+  color: #ffffff;
+  font-size: clamp(26px, 3vw, 38px);
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.grand-total-label {
+  max-width: 110px;
+  color: #dcecff;
+  font-size: 11px;
+  line-height: 1.25;
+  letter-spacing: 0.08em;
+}
+
+html[data-theme='dark'] .grand-total-box {
+  border-color: #f39ab8;
+  background: linear-gradient(135deg, #e04478, #a91d50);
+}
+
+/* PeakPOS-style cashier banner: keep the running total at the top of the
+   counter workflow where it is visible while products are being added. */
+.counter-total-box {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 96px;
+  margin: 0;
+  padding: 14px 24px;
+  border-width: 0 0 2px;
+  border-radius: 0;
+}
+
+.counter-total-box .grand-total-label {
+  max-width: none;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.counter-total-box .grand-total-value {
+  font-size: clamp(38px, 4vw, 58px);
+  line-height: 1;
+}
+
+.counter-total-box {
+  border-color: #f39ab8;
+  background: linear-gradient(135deg, #e04478, #b4235a);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.16), 0 4px 10px rgba(180, 35, 90, 0.22);
+}
+
+.counter-workflow-column {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.counter-workflow-column > .pos-panel {
+  flex: 1;
+  min-height: 0;
 }
 
 .payment-method-btn {
@@ -2407,5 +2544,57 @@ body {
 
   .pos-table {
     min-width: 600px;
+  }
+}
+
+/* Keep checkout visible while payment details use the remaining panel space. */
+.pos-layout > .summary-panel {
+  overflow: hidden;
+}
+
+.payment-section {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.payment-scroll-area {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 4px;
+  scrollbar-gutter: stable;
+}
+
+.checkout-action {
+  flex: 0 0 auto;
+  padding-top: 10px;
+  background: var(--white);
+}
+
+/* The compact/mobile layout should grow with its content instead of being
+   constrained to the desktop viewport shell. */
+@media (max-width: 1024px) {
+  #root {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .app-container {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .main-viewport {
+    overflow: visible;
+  }
+
+  .pos-layout {
+    height: auto;
+    min-height: 0;
+  }
+
+  .pos-layout > .summary-panel {
+    overflow: hidden;
   }
 }

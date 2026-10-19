@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
 import { formatCurrency, roundMoney } from '../utils/formatters';
-import CameraScannerModal from '../components/CameraScannerModal';
 import ReceiptModal from '../components/ReceiptModal';
 import WeightPromptModal from '../components/WeightPromptModal';
 import { cacheProducts, getCachedProducts, isNetworkError, queueSale } from '../utils/offlineStore';
@@ -30,6 +29,7 @@ export default function CounterPOSPage({ storeInfo }) {
   const [notes, setNotes] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerName, setCustomerName] = useState('');
+  const [isCustomerDetailsExpanded, setIsCustomerDetailsExpanded] = useState(false);
   const [loyaltyCustomer, setLoyaltyCustomer] = useState(null);
   const [customerRewards, setCustomerRewards] = useState([]);
   const [selectedRewardId, setSelectedRewardId] = useState('');
@@ -40,7 +40,6 @@ export default function CounterPOSPage({ storeInfo }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState(null);
   const [weightProduct, setWeightProduct] = useState(null);
 
@@ -148,9 +147,9 @@ export default function CounterPOSPage({ storeInfo }) {
   });
 
   // Enter adds an exact barcode/SKU; otherwise the same field filters the catalog.
-  const handleProductSubmit = async (e) => {
+  const handleProductSubmit = async (e, scannedCode = searchQuery.trim()) => {
     if (e) e.preventDefault();
-    const code = searchQuery.trim();
+    const code = scannedCode;
     if (!code) return;
 
     setErrorMessage('');
@@ -174,6 +173,45 @@ export default function CounterPOSPage({ storeInfo }) {
       focusProductInput();
     }
   };
+
+  // Barcode guns behave like keyboards and usually finish with Enter. Listen
+  // globally so a scan still works even when another POS field has focus.
+  useEffect(() => {
+    let buffer = '';
+    let lastKeyTime = 0;
+
+    const handleScannerKeyDown = (event) => {
+      const now = Date.now();
+
+      if (event.key === 'Enter') {
+        const scannedCode = buffer.trim();
+        buffer = '';
+
+        if (scannedCode.length >= 4 && now - lastKeyTime < 250) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const activeField = event.target?.id;
+          if (activeField === 'input-amount-tendered') setAmountTendered('');
+          if (activeField === 'customer-phone') setCustomerPhone('');
+          if (activeField === 'customer-name') setCustomerName('');
+          if (activeField === 'input-payment-ref') setPaymentReference('');
+          if (activeField === 'input-order-discount') setOrderDiscount(0);
+
+          handleProductSubmit(null, scannedCode);
+        }
+        return;
+      }
+
+      if (event.key.length !== 1 || event.ctrlKey || event.altKey || event.metaKey) return;
+
+      buffer = now - lastKeyTime > 100 ? event.key : `${buffer}${event.key}`;
+      lastKeyTime = now;
+    };
+
+    window.addEventListener('keydown', handleScannerKeyDown, true);
+    return () => window.removeEventListener('keydown', handleScannerKeyDown, true);
+  }, [catalogProducts]);
 
   const isWeightProduct = (product) => {
     const unit = product.unit?.trim().toLowerCase();
@@ -307,9 +345,13 @@ export default function CounterPOSPage({ storeInfo }) {
   const safeOrderDiscount = roundMoney(Number(orderDiscount || 0));
   const taxRate = Number(storeInfo?.taxRate || 0);
 
-  const taxableBase = Math.max(0, subtotal - itemDiscountsTotal - safeOrderDiscount);
-  const taxTotal = taxRate > 0 ? roundMoney((taxableBase * taxRate) / 100) : 0;
-  const grandTotal = roundMoney(taxableBase + taxTotal);
+  // Product selling prices are VAT-inclusive. Extract the VAT portion for
+  // display instead of adding VAT on top of the cashier-entered prices.
+  const grossTotal = Math.max(0, subtotal - itemDiscountsTotal - safeOrderDiscount);
+  const taxTotal = taxRate > 0
+    ? roundMoney(grossTotal - (grossTotal / (1 + (taxRate / 100))))
+    : 0;
+  const grandTotal = roundMoney(grossTotal);
 
   const numericTendered = Number(amountTendered || 0);
   const changeDue = Math.max(0, roundMoney(numericTendered - grandTotal));
@@ -414,17 +456,17 @@ export default function CounterPOSPage({ storeInfo }) {
   return (
     <div className={`pos-layout ${isCartExpanded ? 'cart-expanded' : ''}`}>
       {/* LEFT SECTION: PRODUCT SEARCH, BARCODE SCANNER & SHOPPING CART */}
+      <div className="counter-workflow-column">
+        {/* Prominent running total for the cashier */}
+        <div className="grand-total-box counter-total-box">
+          <span className="grand-total-label">Total Amount</span>
+          <span className="grand-total-value">{formatCurrency(grandTotal)}</span>
+        </div>
+
       <section className="pos-panel" aria-label="Product Search and Cart Section">
         <div className="pos-panel-header">
           <span className="pos-panel-title">Counter Workstation</span>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              id="btn-scan-camera"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setIsCameraOpen(true)}
-            >
-              Scan with Camera
-            </button>
             <button
               id="btn-clear-cart"
               className="btn btn-secondary btn-sm"
@@ -589,6 +631,7 @@ export default function CounterPOSPage({ storeInfo }) {
           )}
         </div>
       </section>
+      </div>
 
       {/* RIGHT SECTION: ORDER SUMMARY & CHECKOUT */}
       <section className="pos-panel summary-panel" aria-label="Order Summary and Checkout Section">
@@ -629,13 +672,24 @@ export default function CounterPOSPage({ storeInfo }) {
 
           {taxRate > 0 && (
             <div className="summary-row">
-              <span>VAT ({taxRate}%):</span>
+              <span>VAT included ({taxRate}%):</span>
               <span style={{ fontFamily: 'var(--font-mono)' }}>{formatCurrency(taxTotal)}</span>
             </div>
           )}
         </div>
 
-        <div className="customer-loyalty-box">
+        <div className={`customer-loyalty-box ${isCustomerDetailsExpanded ? 'is-expanded' : ''}`}>
+          <button
+            type="button"
+            className="customer-details-toggle"
+            onClick={() => setIsCustomerDetailsExpanded((expanded) => !expanded)}
+            aria-expanded={isCustomerDetailsExpanded}
+          >
+            <span>Customer details</span>
+            <span aria-hidden="true">{isCustomerDetailsExpanded ? '−' : '+'}</span>
+          </button>
+
+          {isCustomerDetailsExpanded && <>
           <label className="field-label" htmlFor="customer-phone">Customer phone</label>
             <input
               id="customer-phone"
@@ -675,16 +729,12 @@ export default function CounterPOSPage({ storeInfo }) {
               </div>
             </div>
           )}
-        </div>
-
-        {/* Big Grand Total Box */}
-        <div className="grand-total-box">
-          <span className="grand-total-label">Final Payable Total</span>
-          <span className="grand-total-value">{formatCurrency(grandTotal)}</span>
+          </>}
         </div>
 
         {/* Payment Processing Section */}
         <div className="payment-section">
+          <div className="payment-scroll-area">
           <div>
             <label className="field-label">Payment Method</label>
             <div className="payment-method-selector">
@@ -764,8 +814,10 @@ export default function CounterPOSPage({ storeInfo }) {
             </div>
           )}
 
+          </div>
+
           {/* Checkout Action Button */}
-          <div style={{ marginTop: 'auto', paddingTop: '10px' }}>
+          <div className="checkout-action">
             <button
               id="btn-checkout"
               type="button"
@@ -778,23 +830,6 @@ export default function CounterPOSPage({ storeInfo }) {
           </div>
         </div>
       </section>
-
-      {/* Camera Barcode Scanner Modal */}
-      <CameraScannerModal
-        isOpen={isCameraOpen}
-        onClose={() => setIsCameraOpen(false)}
-        onScanSuccess={(code) => {
-          setSearchQuery(code);
-          const product = catalogProducts.find((item) => item.barcode === code || item.sku === code);
-          if (product) {
-            addProductToCart(product);
-          } else {
-            api.lookupBarcode(code)
-              .then((res) => res.data && addProductToCart(res.data))
-              .catch((err) => setErrorMessage(err.message || `No product found for code "${code}".`));
-          }
-        }}
-      />
 
       <WeightPromptModal
         product={weightProduct}

@@ -404,7 +404,7 @@ export default function TransactionsPage({ storeInfo }) {
               <div className="order-details-summary">
                 <div><span>Subtotal</span><strong>{formatCurrency(orderDetails.subtotal)}</strong></div>
                 <div><span>Discounts</span><strong>-{formatCurrency(Number(orderDetails.itemDiscountTotal || 0) + Number(orderDetails.orderDiscountTotal || 0))}</strong></div>
-                <div><span>VAT / Tax</span><strong>{formatCurrency(orderDetails.taxTotal)}</strong></div>
+                <div><span>VAT included</span><strong>{formatCurrency(orderDetails.taxTotal)}</strong></div>
                 <div className="order-details-grand-total"><span>Total</span><strong>{formatCurrency(orderDetails.totalAmount)}</strong></div>
                 <div><span>Amount tendered</span><strong>{formatCurrency(orderDetails.amountTendered)}</strong></div>
                 <div><span>Change</span><strong>{formatCurrency(orderDetails.changeDue)}</strong></div>

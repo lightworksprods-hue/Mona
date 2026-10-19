@@ -161,10 +161,13 @@ async function processCheckout({
     throw { status: 400, message: 'Order discount cannot exceed the subtotal after item discounts.' };
   }
 
-  // Calculate tax if configured
-  const taxableBase = Math.max(0, calculatedSubtotal - calculatedItemDiscountTotal - safeOrderDiscount);
-  const calculatedTax = globalTaxRate > 0 ? roundMoney((taxableBase * globalTaxRate) / 100) : 0.00;
-  const calculatedTotal = roundMoney(taxableBase + calculatedTax);
+  // Product selling prices are VAT-inclusive. Extract the VAT portion for the
+  // sale record; do not add tax on top of the prices entered by the admin.
+  const grossTotal = Math.max(0, calculatedSubtotal - calculatedItemDiscountTotal - safeOrderDiscount);
+  const calculatedTax = globalTaxRate > 0
+    ? roundMoney(grossTotal - (grossTotal / (1 + (globalTaxRate / 100))))
+    : 0.00;
+  const calculatedTotal = roundMoney(grossTotal);
   const loyaltyPoints = normalizedCustomerPhone ? Math.floor((calculatedTotal / 100) * Math.max(0, loyaltyRate)) : 0;
 
   // Validate Payment

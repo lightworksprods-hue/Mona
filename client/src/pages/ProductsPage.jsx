@@ -452,7 +452,7 @@ export default function ProductsPage() {
                 <th>SKU</th>
                 <th>Barcode</th>
                 <th style={{ textAlign: 'right' }}>Cost</th>
-                <th style={{ textAlign: 'right' }}>Selling Price</th>
+                <th style={{ textAlign: 'right' }}>Selling Price incl. VAT</th>
                 <th style={{ textAlign: 'center' }}>Stock</th>
                 <th style={{ textAlign: 'center' }}>Status</th>
                 <th style={{ textAlign: 'center' }}>Actions</th>
@@ -711,7 +711,7 @@ export default function ProductsPage() {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="field-label">Selling Price (₱) *</label>
+                    <label className="field-label">Selling Price incl. VAT (₱) *</label>
                     <input
                       type="number"
                       step="0.01"
