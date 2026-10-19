@@ -1149,6 +1149,8 @@ html[data-theme='dark'] .weight-modal .modal-footer {
 .customer-loyalty-box small { grid-column: 1 / -1; }
 .optional-label { color: var(--secondary-text); font-weight: 400; font-size: 11px; }
 .summary-discount-control { display: flex; align-items: center; gap: 5px; }
+.summary-discount-control > span { font-size: 0; }
+.summary-discount-control > span::after { content: '%'; font-size: 13px; }
 .summary-discount-control input { width: 76px !important; text-align: right; }
 .promotion-badge { display: inline-block; margin-left: 5px; padding: 2px 5px; border-radius: 4px; background: var(--light-pink); color: var(--dark-pink); font-size: 9px; font-weight: 800; vertical-align: middle; }
 .promotion-toggle { flex-direction: row; align-items: center; gap: 8px; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--soft-pink-bg); }
@@ -1716,7 +1718,8 @@ html[data-theme='dark'] .weight-modal .modal-footer {
   font-family: var(--font-mono);
   font-size: 14px;
   line-height: 1.5;
-  color: #111111;
+  color: #000000;
+  font-weight: 600;
   background-color: #FFFFFF;
   padding: 20px;
   border: 1px solid #CCCCCC;
@@ -1777,15 +1780,18 @@ html[data-theme='dark'] .weight-modal .modal-footer {
 .receipt-row {
   display: flex;
   justify-content: space-between;
-  color: #111111;
+  color: #000000;
   font-size: 14px;
+  font-weight: 600;
 }
 
 .receipt-footer {
   text-align: center;
   margin-top: 14px;
-  color: #111111;
+  color: #000000;
   font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
 }
 
 .receipt-disclaimer {

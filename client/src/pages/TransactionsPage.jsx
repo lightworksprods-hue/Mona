@@ -218,7 +218,7 @@ export default function TransactionsPage({ storeInfo }) {
             <option value="">All methods</option>
             <option value="CASH">Cash</option>
             <option value="GCASH">GCash</option>
-            <option value="MAYA">Maya</option>
+            <option value="QRPH">QRPH</option>
           </select>
         </label>
 

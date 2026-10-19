@@ -156,6 +156,7 @@ exports.getReports = async (req, res, next) => {
     const paymentBreakdown = {
       CASH: 0,
       GCASH: 0,
+      QRPH: 0,
       MAYA: 0,
       CARD: 0,
       OTHER: 0,

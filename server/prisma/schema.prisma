@@ -21,6 +21,7 @@ enum PaymentMethod {
   GCASH
   MAYA
   CARD
+  QRPH
   OTHER
 }
 

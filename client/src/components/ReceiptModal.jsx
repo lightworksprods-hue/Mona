@@ -1,6 +1,11 @@
 import React, { useRef } from 'react';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 
+function formatShortReceiptNumber(transactionNumber) {
+  const value = String(transactionNumber || '');
+  return value.split('-').pop() || value;
+}
+
 export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onNewSale }) {
   const receiptRef = useRef();
 
@@ -18,13 +23,15 @@ export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onN
       * { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; background: #fff; color: #000; }
       body { width: ${paperWidth === 'A4' ? '100%' : paperWidth}; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.45; color: #111; }
-      .receipt-paper { width: 100%; padding: ${paperWidth === 'A4' ? '0' : '3mm'}; }
+      .receipt-paper { width: 100%; padding: ${paperWidth === 'A4' ? '0' : '3mm'}; color: #000; font-weight: 600; }
+      .receipt-paper * { color: #000 !important; font-weight: 600; }
+      .receipt-paper strong, .receipt-paper .receipt-store-name { font-weight: 800; }
       .receipt-header { text-align: center; margin-bottom: 10px; }
       .receipt-store-name { font-size: 16px; font-weight: bold; }
       .receipt-separator { border-top: 1px dashed #000; margin: 7px 0; }
       .receipt-row { display: flex; justify-content: space-between; gap: 8px; color: #111; font-size: 13px; }
       .receipt-row > span:last-child, .receipt-row > strong:last-child { text-align: right; }
-      .receipt-footer { text-align: center; margin-top: 12px; font-size: 10px; }
+      .receipt-footer { text-align: center; margin-top: 10px; font-size: 10px; line-height: 1.25; }
     </style></head><body><div class="receipt-paper">${receiptHtml}</div><script>window.onload=()=>{window.print();window.onafterprint=()=>window.close()}</script></body></html>`);
     printWindow.document.close();
   };
@@ -53,7 +60,7 @@ export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onN
 
             <div className="receipt-row">
               <span>Receipt #:</span>
-              <strong>{saleData.transactionNumber}</strong>
+              <strong>{formatShortReceiptNumber(saleData.transactionNumber)}</strong>
             </div>
             <div className="receipt-row">
               <span>Date:</span>

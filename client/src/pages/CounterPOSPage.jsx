@@ -19,7 +19,7 @@ export default function CounterPOSPage({ storeInfo }) {
   // Cart State
   const [cart, setCart] = useState([]);
   const [quantityDrafts, setQuantityDrafts] = useState({});
-  const [orderDiscount, setOrderDiscount] = useState(0);
+  const [orderDiscountPercent, setOrderDiscountPercent] = useState(0);
 
   // Payment State
   const [paymentMethod, setPaymentMethod] = useState('CASH');
@@ -196,7 +196,7 @@ export default function CounterPOSPage({ storeInfo }) {
           if (activeField === 'customer-phone') setCustomerPhone('');
           if (activeField === 'customer-name') setCustomerName('');
           if (activeField === 'input-payment-ref') setPaymentReference('');
-          if (activeField === 'input-order-discount') setOrderDiscount(0);
+          if (activeField === 'input-order-discount') setOrderDiscountPercent(0);
 
           handleProductSubmit(null, scannedCode);
         }
@@ -336,7 +336,7 @@ export default function CounterPOSPage({ storeInfo }) {
     setCart([]);
     setAmountTendered('');
     setPaymentReference('');
-    setOrderDiscount(0);
+    setOrderDiscountPercent(0);
     setErrorMessage('');
     setShowClearCartConfirm(false);
     focusProductInput();
@@ -345,7 +345,9 @@ export default function CounterPOSPage({ storeInfo }) {
   // Financial Calculations
   const subtotal = roundMoney(cart.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0));
   const itemDiscountsTotal = roundMoney(cart.reduce((sum, item) => sum + Number(item.discount || 0), 0));
-  const safeOrderDiscount = roundMoney(Number(orderDiscount || 0));
+  const discountableSubtotal = Math.max(0, subtotal - itemDiscountsTotal);
+  const safeOrderDiscountPercent = Math.min(100, Math.max(0, Number(orderDiscountPercent || 0)));
+  const safeOrderDiscount = roundMoney(discountableSubtotal * (safeOrderDiscountPercent / 100));
   const taxRate = Number(storeInfo?.taxRate || 0);
 
   // Product selling prices are VAT-inclusive. Extract the VAT portion for
@@ -417,7 +419,7 @@ export default function CounterPOSPage({ storeInfo }) {
         setCart([]);
         setAmountTendered('');
         setPaymentReference('');
-        setOrderDiscount(0);
+        setOrderDiscountPercent(0);
         setNotes('');
         setCustomerPhone('');
         setCustomerName('');
@@ -439,7 +441,7 @@ export default function CounterPOSPage({ storeInfo }) {
         setCart([]);
         setAmountTendered('');
         setPaymentReference('');
-        setOrderDiscount(0);
+        setOrderDiscountPercent(0);
         setNotes('');
         setCustomerPhone('');
         setCustomerName('');
@@ -642,20 +644,28 @@ export default function CounterPOSPage({ storeInfo }) {
           )}
 
           <div className="summary-row">
-            <span>Order Discount:</span>
+            <span>Order Discount (%):</span>
             <div className="summary-discount-control">
               <span>₱</span>
               <input
                 id="input-order-discount"
                 type="number"
                 min="0"
-                step="0.5"
+                max="100"
+                step="1"
                 style={{ width: '70px', padding: '2px 6px', textAlign: 'right' }}
-                value={orderDiscount}
-                onChange={(e) => setOrderDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
+                value={orderDiscountPercent || ''}
+                onChange={(e) => setOrderDiscountPercent(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
               />
             </div>
           </div>
+
+          {safeOrderDiscount > 0 && (
+            <div className="summary-row" style={{ color: 'var(--success)' }}>
+              <span>Discount amount:</span>
+              <span style={{ fontFamily: 'var(--font-mono)' }}>-{formatCurrency(safeOrderDiscount)}</span>
+            </div>
+          )}
 
           {taxRate > 0 && (
             <div className="summary-row">
@@ -725,7 +735,7 @@ export default function CounterPOSPage({ storeInfo }) {
           <div>
             <label className="field-label">Payment Method</label>
             <div className="payment-method-selector">
-              {['CASH', 'GCASH', 'MAYA'].map((method) => (
+              {['CASH', 'GCASH', 'QRPH'].map((method) => (
                 <button
                   key={method}
                   type="button"

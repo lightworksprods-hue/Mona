@@ -13,7 +13,7 @@ function normalizePhone(phone) {
  * @param {string} params.userRole - Authenticated user's role
  * @param {Array<{productId: string, quantity: number, discount?: number, loyaltyRewardId?: string}>} params.items
  * @param {number} params.orderDiscount - Overall sale discount
- * @param {string} params.paymentMethod - CASH | GCASH | MAYA | OTHER
+ * @param {string} params.paymentMethod - CASH | GCASH | QRPH | OTHER
  * @param {number} params.amountTendered - Amount given by customer
  * @param {string} params.paymentReference - Reference for electronic payments
  * @param {string} params.notes - Optional notes

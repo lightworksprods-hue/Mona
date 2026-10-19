@@ -41,7 +41,7 @@ const checkoutValidator = [
   body('items.*.productId').notEmpty().withMessage('Each item must have a valid productId'),
   body('items.*.quantity').isFloat({ min: 0.001 }).withMessage('Quantity must be greater than zero'),
   body('items.*.discount').optional().isFloat({ min: 0 }).withMessage('Discount cannot be negative'),
-  body('paymentMethod').isIn(['CASH', 'GCASH', 'MAYA', 'OTHER']).withMessage('Invalid payment method'),
+  body('paymentMethod').isIn(['CASH', 'GCASH', 'QRPH', 'MAYA', 'OTHER']).withMessage('Invalid payment method'),
   body('amountTendered').isFloat({ min: 0 }).withMessage('Amount tendered must be a non-negative number'),
   body('orderDiscount').optional().isFloat({ min: 0 }).withMessage('Order discount must be non-negative'),
 ];
