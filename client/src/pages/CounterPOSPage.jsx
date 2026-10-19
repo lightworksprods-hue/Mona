@@ -19,7 +19,6 @@ export default function CounterPOSPage({ storeInfo }) {
   // Cart State
   const [cart, setCart] = useState([]);
   const [quantityDrafts, setQuantityDrafts] = useState({});
-  const [isCartExpanded, setIsCartExpanded] = useState(false);
   const [orderDiscount, setOrderDiscount] = useState(0);
 
   // Payment State
@@ -42,6 +41,7 @@ export default function CounterPOSPage({ storeInfo }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedSale, setCompletedSale] = useState(null);
   const [weightProduct, setWeightProduct] = useState(null);
+  const [showClearCartConfirm, setShowClearCartConfirm] = useState(false);
 
   const productInputRef = useRef(null);
 
@@ -140,7 +140,7 @@ export default function CounterPOSPage({ storeInfo }) {
 
   const filteredCatalogProducts = catalogProducts.filter((product) => {
     const query = searchQuery.trim().toLowerCase();
-    if (!query) return true;
+    if (!query) return false;
     return [product.name, product.sku, product.barcode].some((value) =>
       String(value || '').toLowerCase().includes(query)
     );
@@ -329,14 +329,17 @@ export default function CounterPOSPage({ storeInfo }) {
   // Clear Entire Cart with confirmation
   const handleClearCart = () => {
     if (cart.length === 0) return;
-    if (window.confirm('Are you sure you want to cancel current sale and clear the cart?')) {
-      setCart([]);
-      setAmountTendered('');
-      setPaymentReference('');
-      setOrderDiscount(0);
-      setErrorMessage('');
-      focusProductInput();
-    }
+    setShowClearCartConfirm(true);
+  };
+
+  const confirmClearCart = () => {
+    setCart([]);
+    setAmountTendered('');
+    setPaymentReference('');
+    setOrderDiscount(0);
+    setErrorMessage('');
+    setShowClearCartConfirm(false);
+    focusProductInput();
   };
 
   // Financial Calculations
@@ -454,7 +457,7 @@ export default function CounterPOSPage({ storeInfo }) {
   };
 
   return (
-    <div className={`pos-layout ${isCartExpanded ? 'cart-expanded' : ''}`}>
+    <div className="pos-layout">
       {/* LEFT SECTION: PRODUCT SEARCH, BARCODE SCANNER & SHOPPING CART */}
       <div className="counter-workflow-column">
         {/* Prominent running total for the cashier */}
@@ -465,30 +468,7 @@ export default function CounterPOSPage({ storeInfo }) {
 
       <section className="pos-panel" aria-label="Product Search and Cart Section">
         <div className="pos-panel-header">
-          <span className="pos-panel-title">Counter Workstation</span>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              id="btn-clear-cart"
-              className="btn btn-secondary btn-sm"
-              onClick={handleClearCart}
-              disabled={cart.length === 0}
-            >
-              Clear Cart
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setIsCartExpanded((expanded) => !expanded)}
-              aria-pressed={isCartExpanded}
-            >
-              {isCartExpanded ? 'Show Products' : 'Expand Cart'}
-            </button>
-          </div>
-        </div>
-
-        {/* Unified product search and barcode scanner field */}
-        <div className="scanner-strip">
-          <form onSubmit={handleProductSubmit} className="unified-product-input">
+          <form onSubmit={handleProductSubmit} className="header-product-search">
             <input
               id="input-product-search"
               ref={productInputRef}
@@ -501,33 +481,40 @@ export default function CounterPOSPage({ storeInfo }) {
               autoComplete="off"
             />
           </form>
+          <div className="counter-header-actions">
+            <button
+              id="btn-clear-cart"
+              className="btn btn-secondary btn-sm"
+              onClick={handleClearCart}
+              disabled={cart.length === 0}
+            >
+              Clear Cart
+            </button>
+          </div>
         </div>
 
-        <div className="product-catalog" aria-label="Product catalog">
-          <div className="product-catalog-header">
-            <strong>Products</strong>
-            <span>{filteredCatalogProducts.length} available</span>
-          </div>
-          <div className="product-catalog-grid">
-            {filteredCatalogProducts.map((product) => (
+        {searchQuery.trim() && (
+          <div className="search-results-list counter-search-results" aria-label="Matching products">
+            {filteredCatalogProducts.slice(0, 8).map((product) => (
               <button
                 type="button"
                 key={product.id}
-                className="product-card"
+                className="search-result-row"
                 onClick={() => addProductToCart(product)}
                 disabled={maxPaidQuantity(product) < 1}
               >
-                <strong>{product.name} {product.buyOneTakeOne && <span className="promotion-badge">BUY 1 TAKE 1</span>}</strong>
-                <span>{product.sku}</span>
+                <span>
+                  <strong>{product.name}</strong>
+                  <small>{product.sku} · Stock: {product.stockQuantity}</small>
+                </span>
                 <b>{formatCurrency(product.sellingPrice)}</b>
-                <small>{maxPaidQuantity(product) > 0 ? `Stock: ${product.stockQuantity}${product.buyOneTakeOne ? ' (Buy 1 Take 1)' : ''}` : 'Out of stock'}</small>
               </button>
             ))}
             {filteredCatalogProducts.length === 0 && (
-              <div className="empty-state">No matching products found.</div>
+              <div className="empty-state search-empty-state">No matching products found.</div>
             )}
           </div>
-        </div>
+        )}
 
         {/* Messages */}
         {errorMessage && (
@@ -830,6 +817,30 @@ export default function CounterPOSPage({ storeInfo }) {
           </div>
         </div>
       </section>
+
+      {showClearCartConfirm && (
+        <div className="modal-overlay" onMouseDown={() => setShowClearCartConfirm(false)}>
+          <div
+            className="modal-dialog clear-cart-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="clear-cart-dialog-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div className="modal-title" id="clear-cart-dialog-title">Clear current cart?</div>
+              <button className="modal-close-btn" type="button" onClick={() => setShowClearCartConfirm(false)} aria-label="Close">×</button>
+            </div>
+            <div className="modal-body clear-cart-body">
+              This will cancel the current sale and remove all items from the cart.
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" type="button" onClick={() => setShowClearCartConfirm(false)}>Keep Cart</button>
+              <button className="btn btn-primary" type="button" onClick={confirmClearCart}>Clear Cart</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <WeightPromptModal
         product={weightProduct}

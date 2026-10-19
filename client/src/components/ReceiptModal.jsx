@@ -17,12 +17,12 @@ export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onN
       @page { size: ${paperWidth === 'A4' ? 'A4' : `${paperWidth} auto`}; margin: ${paperWidth === 'A4' ? '12mm' : '0'}; }
       * { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; background: #fff; color: #000; }
-      body { width: ${paperWidth === 'A4' ? '100%' : paperWidth}; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.35; }
+      body { width: ${paperWidth === 'A4' ? '100%' : paperWidth}; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.45; color: #111; }
       .receipt-paper { width: 100%; padding: ${paperWidth === 'A4' ? '0' : '3mm'}; }
       .receipt-header { text-align: center; margin-bottom: 10px; }
       .receipt-store-name { font-size: 16px; font-weight: bold; }
       .receipt-separator { border-top: 1px dashed #000; margin: 7px 0; }
-      .receipt-row { display: flex; justify-content: space-between; gap: 8px; }
+      .receipt-row { display: flex; justify-content: space-between; gap: 8px; color: #111; font-size: 13px; }
       .receipt-row > span:last-child, .receipt-row > strong:last-child { text-align: right; }
       .receipt-footer { text-align: center; margin-top: 12px; font-size: 10px; }
     </style></head><body><div class="receipt-paper">${receiptHtml}</div><script>window.onload=()=>{window.print();window.onafterprint=()=>window.close()}</script></body></html>`);
@@ -46,6 +46,7 @@ export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onN
               <div className="receipt-store-name">{storeInfo?.storeName || 'COUNTER POS STORE'}</div>
               <div>{storeInfo?.storeAddress || '123 Market St, Manila'}</div>
               <div>Tel: {storeInfo?.phone || '+63 900 000 0000'}</div>
+              <div style={{ marginTop: '4px', fontWeight: 'bold' }}>NON-VAT</div>
             </div>
 
             <div className="receipt-separator" />
@@ -99,13 +100,6 @@ export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onN
                 <span>-{formatCurrency(saleData.orderDiscountTotal)}</span>
               </div>
             )}
-            {Number(saleData.taxTotal) > 0 && (
-              <div className="receipt-row">
-                <span>VAT included:</span>
-                <span>{formatCurrency(saleData.taxTotal)}</span>
-              </div>
-            )}
-
             <div className="receipt-separator" />
 
             <div className="receipt-row" style={{ fontSize: '15px', fontWeight: 'bold' }}>
@@ -135,6 +129,7 @@ export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onN
             <div className="receipt-footer">
               <p>{storeInfo?.receiptFooter || 'Thank you for shopping with us! Please come again.'}</p>
               <p style={{ marginTop: '4px', fontSize: '10px' }}>Items sold in good condition.</p>
+              <p className="receipt-disclaimer">This is not an official receipt. Please ask for BIR Receipt.</p>
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
   const { user, logout, isAdmin } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -20,6 +21,11 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
 
   const handleLogout = () => {
     setShowLogoutConfirm(true);
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setIsNavMenuOpen(false);
   };
 
   useEffect(() => {
@@ -49,6 +55,15 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
           </span>
           <button
             type="button"
+            className="menu-toggle"
+            onClick={() => setIsNavMenuOpen((open) => !open)}
+            aria-expanded={isNavMenuOpen}
+            aria-controls="main-navigation"
+          >
+            Menu
+          </button>
+          <button
+            type="button"
             className="theme-toggle"
             onClick={onToggleTheme}
             aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
@@ -62,11 +77,11 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
         </div>
       </div>
 
-      <nav className="nav-bar">
+      <nav id="main-navigation" className={`nav-bar ${isNavMenuOpen ? 'is-open' : ''}`}>
         <button
           id="nav-pos"
           className={`nav-tab ${activeTab === 'pos' ? 'active' : ''}`}
-          onClick={() => setActiveTab('pos')}
+          onClick={() => handleTabChange('pos')}
           disabled={!canUsePOS}
           title={canUsePOS ? 'Open Counter POS' : 'Open the cash drawer before using the POS'}
         >
@@ -77,7 +92,7 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
           <button
             id="nav-products"
             className={`nav-tab ${activeTab === 'products' ? 'active' : ''}`}
-            onClick={() => setActiveTab('products')}
+            onClick={() => handleTabChange('products')}
           >
             Products
           </button>
@@ -87,7 +102,7 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
           <button
             id="nav-inventory"
             className={`nav-tab ${activeTab === 'inventory' ? 'active' : ''}`}
-            onClick={() => setActiveTab('inventory')}
+            onClick={() => handleTabChange('inventory')}
           >
             Inventory
           </button>
@@ -96,7 +111,7 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
         <button
           id="nav-transactions"
           className={`nav-tab ${activeTab === 'transactions' ? 'active' : ''}`}
-          onClick={() => setActiveTab('transactions')}
+          onClick={() => handleTabChange('transactions')}
         >
           Transactions
         </button>
@@ -104,7 +119,7 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
         <button
           id="nav-cash"
           className={`nav-tab ${activeTab === 'cash' ? 'active' : ''}`}
-          onClick={() => setActiveTab('cash')}
+          onClick={() => handleTabChange('cash')}
         >
           Cash Drawer
         </button>
@@ -113,7 +128,7 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
           <button
             id="nav-reports"
             className={`nav-tab ${activeTab === 'reports' ? 'active' : ''}`}
-            onClick={() => setActiveTab('reports')}
+            onClick={() => handleTabChange('reports')}
           >
             Reports & Stats
           </button>
@@ -123,7 +138,7 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
           <button
             id="nav-settings"
             className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`}
-            onClick={() => setActiveTab('settings')}
+            onClick={() => handleTabChange('settings')}
           >
             Settings
           </button>

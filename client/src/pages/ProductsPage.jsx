@@ -385,14 +385,14 @@ export default function ProductsPage() {
         </button>
       </div>
 
-      <div className="pos-panel" style={{ padding: '16px' }}>
-        <div style={{ marginBottom: '10px' }}>
+      <div className="pos-panel bulk-import-card">
+        <div className="bulk-import-info">
           <h2 className="pos-panel-title" style={{ fontSize: '15px' }}>Bulk Import Products</h2>
           <p style={{ margin: '4px 0 0', color: 'var(--secondary-text)', fontSize: '12px' }}>
             Upload a CSV file. Required columns: name, sku, barcode, costPrice, sellingPrice. Category values must match an existing category name.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="bulk-import-actions">
           <label className="btn btn-primary" htmlFor="products-csv-import">
             {isImportingProducts ? 'Importing...' : 'Choose CSV File'}
           </label>
@@ -411,18 +411,16 @@ export default function ProductsPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="pos-panel" style={{ padding: '12px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+      <div className="pos-panel product-filters">
         <input
           type="text"
           className="search-input"
-          style={{ flex: 1, minWidth: '220px' }}
           placeholder="Search by product name, SKU, or barcode..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <select
           className="form-control"
-          style={{ minWidth: '160px' }}
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
         >

@@ -159,7 +159,7 @@ export default function App() {
         onToggleTheme={() => setTheme((current) => current === 'light' ? 'dark' : 'light')}
       />
 
-      <main className="main-viewport">
+      <main className={`main-viewport ${activeTab === 'pos' ? 'pos-main-viewport' : ''}`}>
         {failedSales > 0 && (
           <div className="offline-queue-warning">
             <span>{failedSales} offline sale{failedSales === 1 ? '' : 's'} need attention because the server rejected them.</span>
