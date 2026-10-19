@@ -28,11 +28,14 @@ exports.generateBarcode = async (req, res, next) => {
 // Get all products with optional search query & category filter
 exports.getProducts = async (req, res, next) => {
   try {
-    const { search, categoryId, activeOnly } = req.query;
+    const { search, categoryId, activeOnly, inactiveOnly } = req.query;
 
     const where = {};
     if (activeOnly === 'true' || activeOnly === true) {
       where.isActive = true;
+    }
+    if (inactiveOnly === 'true' || inactiveOnly === true) {
+      where.isActive = false;
     }
     if (categoryId) {
       where.categoryId = categoryId;

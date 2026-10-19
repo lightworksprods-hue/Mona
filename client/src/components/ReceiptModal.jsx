@@ -115,7 +115,7 @@ export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onN
             </div>
 
             <div className="receipt-row">
-              <span>Payment ({saleData.paymentMethod}):</span>
+              <span>Amount Received ({saleData.paymentMethod}):</span>
               <span>{formatCurrency(saleData.amountTendered)}</span>
             </div>
 

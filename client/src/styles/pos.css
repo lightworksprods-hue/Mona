@@ -979,14 +979,22 @@ html[data-theme='dark'] .weight-modal .modal-footer {
 }
 
 .qty-input {
-  width: 40px;
-  height: 26px;
+  width: 48px;
+  min-width: 48px;
+  height: 30px;
+  box-sizing: border-box;
+  padding: 0 4px;
   text-align: center;
   border: none;
   font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 600;
   outline: none;
+}
+
+.qty-input-decimal {
+  width: 68px;
+  min-width: 68px;
 }
 
 /* Buttons */
@@ -2196,10 +2204,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
+  width: calc(100% - 4px);
   min-width: 0;
   box-sizing: border-box;
-  padding: 2px 0;
+  padding: 2px 0 2px 0;
   border: 0;
   background: transparent;
   color: var(--dark-pink);
@@ -2220,6 +2228,8 @@ body {
   background: var(--white);
   font-size: 16px;
   line-height: 1;
+  flex: 0 0 22px;
+  margin-right: 1px;
 }
 
 .customer-details-toggle:hover span:last-child,
@@ -2228,9 +2238,25 @@ body {
   color: var(--dark-pink);
 }
 
-.payment-section { gap: 10px; padding-top: 10px; }
+.payment-section { gap: 14px; padding-top: 12px; }
 
-.payment-method-selector { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.payment-method-selector {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.payment-section .tendered-field-group {
+  gap: 7px;
+}
+
+.payment-section .tendered-field-group > div[style] {
+  margin-top: 10px !important;
+}
+
+.payment-section .change-box {
+  margin-top: 14px !important;
+}
 
 .btn-checkout:disabled {
   background: #e9a0b9;
@@ -2392,7 +2418,7 @@ html[data-theme='dark'] .grand-total-box {
 
 .product-filters {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) 190px auto;
+  grid-template-columns: minmax(220px, 1fr) 170px 170px auto;
   gap: 8px;
   align-items: center;
   padding: 10px;

@@ -75,6 +75,10 @@ async function processCheckout({
     throw { status: 400, message: 'Customer phone number must contain at least 7 digits.' };
   }
 
+  if (['GCASH', 'QRPH'].includes(paymentMethod) && !/^\d{4}$/.test(String(paymentReference || '').trim())) {
+    throw { status: 400, message: `${paymentMethod} payment requires the last 4 digits as a reference.` };
+  }
+
   // 2. Fetch all products in cart with current database pricing & stock
   const productIds = items.map((i) => i.productId);
   const products = await prisma.product.findMany({

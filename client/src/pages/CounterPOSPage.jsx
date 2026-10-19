@@ -362,7 +362,9 @@ export default function CounterPOSPage({ storeInfo }) {
   const changeDue = Math.max(0, roundMoney(numericTendered - grandTotal));
   const isPaymentValid =
     cart.length > 0 &&
-    (paymentMethod === 'CASH' ? numericTendered >= grandTotal : true);
+    (paymentMethod === 'CASH'
+      ? numericTendered >= grandTotal
+      : /^\d{4}$/.test(paymentReference.trim()));
 
   // Fast cash tender buttons (₱100, ₱500, ₱1,000, Exact)
   const handleQuickCash = (amount) => {
@@ -385,8 +387,8 @@ export default function CounterPOSPage({ storeInfo }) {
       return;
     }
 
-    if (paymentMethod !== 'CASH' && !paymentReference.trim()) {
-      setErrorMessage(`Please enter transaction/reference number for ${paymentMethod} payment.`);
+    if (paymentMethod !== 'CASH' && !/^\d{4}$/.test(paymentReference.trim())) {
+      setErrorMessage(`Please enter the last 4 digits for ${paymentMethod} payment.`);
       return;
     }
 
@@ -583,7 +585,7 @@ export default function CounterPOSPage({ storeInfo }) {
                         </button>
                         <input
                           type="number"
-                          className="qty-input"
+                          className={`qty-input ${isWeightProduct(item.product) ? 'qty-input-decimal' : ''}`}
                           min={isWeightProduct(item.product) ? '0.001' : '1'}
                           step={isWeightProduct(item.product) ? '0.001' : '1'}
                           max={maxPaidQuantity(item.product)}
@@ -756,22 +758,25 @@ export default function CounterPOSPage({ storeInfo }) {
           {/* Electronic Payment Reference */}
           {paymentMethod !== 'CASH' && (
             <div className="tendered-field-group">
-              <label className="field-label">{paymentMethod} Reference Number *</label>
+              <label className="field-label">{paymentMethod} Last 4 Digits *</label>
               <input
                 id="input-payment-ref"
                 type="text"
+                inputMode="numeric"
+                maxLength={4}
+                pattern="[0-9]{4}"
                 className="form-control"
-                placeholder={`Enter ${paymentMethod} confirmation reference...`}
+                placeholder="Enter last 4 digits"
                 value={paymentReference}
-                onChange={(e) => setPaymentReference(e.target.value)}
+                onChange={(e) => setPaymentReference(e.target.value.replace(/\D/g, '').slice(0, 4))}
               />
             </div>
           )}
 
-          {/* Cash Amount Tendered & Quick Tender */}
+          {/* Cash Amount Received & Quick Tender */}
           {paymentMethod === 'CASH' && (
             <div className="tendered-field-group">
-              <label className="field-label">Amount Tendered</label>
+              <label className="field-label">Amount Received</label>
               <input
                 id="input-amount-tendered"
                 type="text"

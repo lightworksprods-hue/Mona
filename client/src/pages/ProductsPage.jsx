@@ -43,6 +43,7 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState([]);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -83,7 +84,7 @@ export default function ProductsPage() {
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [search, categoryFilter]);
+  }, [search, categoryFilter, statusFilter]);
 
   const loadProducts = async () => {
     setIsLoading(true);
@@ -91,6 +92,8 @@ export default function ProductsPage() {
       const res = await api.getProducts({
         search,
         categoryId: categoryFilter,
+        ...(statusFilter === 'active' ? { activeOnly: true } : {}),
+        ...(statusFilter === 'inactive' ? { inactiveOnly: true } : {}),
       });
       setProducts(res.data || []);
     } catch (err) {
@@ -430,6 +433,16 @@ export default function ProductsPage() {
               {c.name}
             </option>
           ))}
+        </select>
+        <select
+          className="form-control"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          aria-label="Product status"
+        >
+          <option value="all">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Deactivated</option>
         </select>
         <button type="button" className="btn btn-secondary" onClick={() => setIsCategoryModalOpen(true)}>
           Manage Categories
