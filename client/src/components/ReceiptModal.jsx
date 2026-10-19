@@ -162,7 +162,6 @@ export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onN
             <div className="receipt-separator" />
 
             <div className="receipt-footer">
-              <p>{storeInfo?.receiptFooter || 'Thank you for shopping with us! Please come again.'}</p>
               <p style={{ marginTop: '4px', fontSize: '10px' }}>Items sold in good condition.</p>
               <p className="receipt-disclaimer">This is not an official receipt. Please ask for BIR Receipt.</p>
             </div>
