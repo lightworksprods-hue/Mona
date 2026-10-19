@@ -6,6 +6,17 @@ function formatShortReceiptNumber(transactionNumber) {
   return value.split('-').pop() || value;
 }
 
+function getRefundedQuantity(saleData, productId) {
+  return (saleData?.refunds || []).reduce((total, refund) => {
+    const refundedQuantity = Array.isArray(refund.itemsJson)
+      ? refund.itemsJson
+        .filter((item) => item.productId === productId)
+        .reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+      : 0;
+    return total + refundedQuantity;
+  }, 0);
+}
+
 export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onNewSale }) {
   const receiptRef = useRef();
 
@@ -77,7 +88,24 @@ export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onN
             <div style={{ marginBottom: '8px' }}>
               {saleData.items && saleData.items.map((item, idx) => (
                 <div key={idx} style={{ marginBottom: '6px' }}>
-                  <div style={{ fontWeight: '600' }}>{item.productName}</div>
+                  {(() => {
+                    const refundedQuantity = getRefundedQuantity(saleData, item.productId);
+                    const originalQuantity = Number(item.quantity || 0);
+                    const refundLabel = refundedQuantity >= originalQuantity
+                      ? 'REFUNDED'
+                      : refundedQuantity > 0
+                        ? 'PARTIALLY REFUNDED'
+                        : '';
+
+                    return (
+                      <>
+                        <div style={{ fontWeight: '600' }}>{item.productName}</div>
+                        {refundLabel && (
+                          <div style={{ fontWeight: '800', fontSize: '11px' }}>[{refundLabel}]</div>
+                        )}
+                      </>
+                    );
+                  })()}
                   <div className="receipt-row" style={{ fontSize: '12px', color: '#444' }}>
                     <span>
                       {item.quantity} x {formatCurrency(item.unitPrice)}

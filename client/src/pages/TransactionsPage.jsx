@@ -296,7 +296,7 @@ export default function TransactionsPage({ storeInfo }) {
                     </td>
                     <td>{sale.cashier?.fullName || sale.cashier?.username}</td>
                     <td style={{ textAlign: 'center' }}>
-                      {sale.items ? sale.items.reduce((sum, i) => sum + i.quantity, 0) : '-'}
+                      {sale.items ? sale.items.reduce((sum, i) => sum + Number(i.quantity || 0), 0) : '-'}
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <span className="badge-tag">{sale.paymentMethod}</span>
@@ -389,15 +389,28 @@ export default function TransactionsPage({ storeInfo }) {
               <div className="table-container order-details-table-wrap">
                 <table className="pos-table order-details-table">
                   <thead><tr><th>Product</th><th style={{ textAlign: 'center' }}>Qty</th><th style={{ textAlign: 'right' }}>Price</th><th style={{ textAlign: 'right' }}>Discount</th><th style={{ textAlign: 'right' }}>Total</th></tr></thead>
-                  <tbody>{(orderDetails.items || []).map((item) => (
+                  <tbody>{(orderDetails.items || []).map((item) => {
+                    const refundedQuantity = getRefundedQuantities(orderDetails)[item.productId] || 0;
+                    const originalQuantity = Number(item.quantity || 0);
+                    const refundLabel = refundedQuantity >= originalQuantity
+                      ? 'REFUNDED'
+                      : refundedQuantity > 0
+                        ? `PARTIALLY REFUNDED (${refundedQuantity})`
+                        : '';
+
+                    return (
                     <tr key={item.id}>
                       <td><strong>{item.productName}</strong><small>{item.sku} {item.barcode ? `· ${item.barcode}` : ''}</small></td>
-                      <td data-label="Qty" style={{ textAlign: 'center' }}>{item.quantity}</td>
+                      <td data-label="Qty" style={{ textAlign: 'center' }}>
+                        {item.quantity}
+                        {refundLabel && <small style={{ display: 'block', color: 'var(--dark-pink)', fontWeight: 700 }}>{refundLabel}</small>}
+                      </td>
                       <td data-label="Price" style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatCurrency(item.unitPrice)}</td>
                       <td data-label="Discount" style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatCurrency(item.discount)}</td>
                       <td data-label="Total" style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>{formatCurrency(item.lineTotal)}</td>
                     </tr>
-                  ))}</tbody>
+                    );
+                  })}</tbody>
                 </table>
               </div>
 

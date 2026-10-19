@@ -9,10 +9,10 @@
   "theme_color": "#c2185b",
   "icons": [
     {
-      "src": "/mona-removebg-preview.png",
-      "sizes": "432x578",
-      "type": "image/png",
-      "purpose": "any"
+      "src": "/mona-app-icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
