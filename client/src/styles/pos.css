@@ -3235,3 +3235,12 @@ header {
     overflow: visible;
   }
 }
+
+/* Keep table hover states readable when the dark theme is active. */
+html[data-theme='dark'] .pos-table tbody tr:hover {
+  background-color: #30242c;
+}
+
+html[data-theme='dark'] .pos-table tbody tr:hover td {
+  color: var(--primary-text);
+}
