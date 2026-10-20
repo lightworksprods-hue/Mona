@@ -5,6 +5,8 @@ import ReceiptModal from '../components/ReceiptModal';
 import { useAuth } from '../context/AuthContext';
 import { downloadCsv, printReport } from '../utils/reportExport';
 
+const TRANSACTIONS_PER_PAGE = 10;
+
 export default function TransactionsPage({ storeInfo }) {
   const { isAdmin } = useAuth();
   const [sales, setSales] = useState([]);
@@ -13,6 +15,7 @@ export default function TransactionsPage({ storeInfo }) {
   const [statusFilter, setStatusFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -55,6 +58,13 @@ export default function TransactionsPage({ storeInfo }) {
 
     return () => clearTimeout(timer);
   }, [search, paymentFilter, statusFilter, startDate, endDate]);
+
+  const totalPages = Math.max(1, Math.ceil(sales.length / TRANSACTIONS_PER_PAGE));
+  const visiblePage = Math.min(currentPage, totalPages);
+  const paginatedSales = sales.slice(
+    (visiblePage - 1) * TRANSACTIONS_PER_PAGE,
+    visiblePage * TRANSACTIONS_PER_PAGE,
+  );
 
   const loadSales = async () => {
     setIsLoading(true);
@@ -204,7 +214,7 @@ export default function TransactionsPage({ storeInfo }) {
             className="search-input"
             placeholder="Transaction number..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
           />
         </label>
 
@@ -213,7 +223,7 @@ export default function TransactionsPage({ storeInfo }) {
           <select
             className="form-control"
             value={paymentFilter}
-            onChange={(e) => setPaymentFilter(e.target.value)}
+            onChange={(e) => { setPaymentFilter(e.target.value); setCurrentPage(1); }}
           >
             <option value="">All methods</option>
             <option value="CASH">Cash</option>
@@ -227,7 +237,7 @@ export default function TransactionsPage({ storeInfo }) {
           <select
             className="form-control"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
           >
             <option value="">All statuses</option>
             <option value="COMPLETED">Completed</option>
@@ -244,7 +254,7 @@ export default function TransactionsPage({ storeInfo }) {
               className="form-control"
               aria-label="Start date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1); }}
             />
             <span>to</span>
             <input
@@ -252,7 +262,7 @@ export default function TransactionsPage({ storeInfo }) {
               className="form-control"
               aria-label="End date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
             />
           </div>
         </div>
@@ -286,7 +296,7 @@ export default function TransactionsPage({ storeInfo }) {
                   </td>
                 </tr>
               ) : (
-                sales.map((sale) => (
+                paginatedSales.map((sale) => (
                   <tr key={sale.id}>
                     <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
                       {sale.transactionNumber}
@@ -357,6 +367,34 @@ export default function TransactionsPage({ storeInfo }) {
             </tbody>
           </table>
         </div>
+        {sales.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', borderTop: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
+            <span style={{ color: 'var(--secondary-text)', fontSize: '13px' }}>
+              Showing {(visiblePage - 1) * TRANSACTIONS_PER_PAGE + 1}-{Math.min(visiblePage * TRANSACTIONS_PER_PAGE, sales.length)} of {sales.length} transactions
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={visiblePage === 1}
+              >
+                Previous
+              </button>
+              <span aria-live="polite" style={{ fontSize: '13px', minWidth: '76px', textAlign: 'center' }}>
+                Page {visiblePage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={visiblePage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Reprint Receipt Modal */}

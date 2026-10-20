@@ -3,6 +3,8 @@ import { api } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
 import { downloadCsv } from '../utils/reportExport';
 
+const PRODUCTS_PER_PAGE = 10;
+
 const eanParity = [
   'LLLLLL', 'LLGLGG', 'LLGGLG', 'LLGGGL', 'LGLLGG',
   'LGGLLG', 'LGGGLL', 'LGLGLG', 'LGLGGL', 'LGGLGL',
@@ -45,6 +47,7 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -88,6 +91,13 @@ export default function ProductsPage() {
 
     return () => clearTimeout(timer);
   }, [search, categoryFilter, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(products.length / PRODUCTS_PER_PAGE));
+  const visiblePage = Math.min(currentPage, totalPages);
+  const paginatedProducts = products.slice(
+    (visiblePage - 1) * PRODUCTS_PER_PAGE,
+    visiblePage * PRODUCTS_PER_PAGE,
+  );
 
   const loadProducts = async () => {
     setIsLoading(true);
@@ -522,12 +532,12 @@ export default function ProductsPage() {
           className="search-input"
           placeholder="Search by product name, SKU, or barcode..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
         />
         <select
           className="form-control"
           value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
+          onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
         >
           <option value="">All Categories</option>
           {categories.map((c) => (
@@ -539,7 +549,7 @@ export default function ProductsPage() {
         <select
           className="form-control"
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
           aria-label="Product status"
         >
           <option value="all">All Statuses</option>
@@ -579,7 +589,7 @@ export default function ProductsPage() {
                   </td>
                 </tr>
               ) : (
-                products.map((p) => (
+                paginatedProducts.map((p) => (
                   <tr key={p.id}>
                     <td>
                       <strong>{p.name}</strong>
@@ -647,6 +657,34 @@ export default function ProductsPage() {
             </tbody>
           </table>
         </div>
+        {products.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', borderTop: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
+            <span style={{ color: 'var(--secondary-text)', fontSize: '13px' }}>
+              Showing {(visiblePage - 1) * PRODUCTS_PER_PAGE + 1}-{Math.min(visiblePage * PRODUCTS_PER_PAGE, products.length)} of {products.length} products
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={visiblePage === 1}
+              >
+                Previous
+              </button>
+              <span aria-live="polite" style={{ fontSize: '13px', minWidth: '76px', textAlign: 'center' }}>
+                Page {visiblePage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={visiblePage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {isCategoryModalOpen && (
