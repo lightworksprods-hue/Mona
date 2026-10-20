@@ -14,6 +14,8 @@ function formatTenderedInput(value) {
 
 export default function CounterPOSPage({ storeInfo }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [scanQuantity, setScanQuantity] = useState('');
+  const [highlightedSearchIndex, setHighlightedSearchIndex] = useState(-1);
   const [catalogProducts, setCatalogProducts] = useState([]);
 
   // Cart State
@@ -146,6 +148,32 @@ export default function CounterPOSPage({ storeInfo }) {
     );
   });
 
+  const visibleSearchProducts = filteredCatalogProducts.slice(0, 8);
+
+  useEffect(() => {
+    setHighlightedSearchIndex(-1);
+  }, [searchQuery]);
+
+  const handleProductSearchKeyDown = (event) => {
+    if (!searchQuery.trim() || visibleSearchProducts.length === 0) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setHighlightedSearchIndex((current) => (current + 1) % visibleSearchProducts.length);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setHighlightedSearchIndex((current) => (
+        current <= 0 ? visibleSearchProducts.length - 1 : current - 1
+      ));
+    } else if (event.key === 'Enter' && highlightedSearchIndex >= 0) {
+      event.preventDefault();
+      addProductToCart(visibleSearchProducts[highlightedSearchIndex]);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      setHighlightedSearchIndex(-1);
+    }
+  };
+
   // Enter adds an exact barcode/SKU; otherwise the same field filters the catalog.
   const handleProductSubmit = async (e, scannedCode = searchQuery.trim()) => {
     if (e) e.preventDefault();
@@ -158,14 +186,14 @@ export default function CounterPOSPage({ storeInfo }) {
     );
 
     if (catalogMatch) {
-      addProductToCart(catalogMatch);
+      addProductUsingScanQuantity(catalogMatch);
       return;
     }
 
     try {
       const res = await api.lookupBarcode(code);
       if (res.success && res.data) {
-        addProductToCart(res.data);
+        addProductUsingScanQuantity(res.data);
       }
     } catch (err) {
       setErrorMessage(err.message || `No product found for code "${code}".`);
@@ -211,7 +239,7 @@ export default function CounterPOSPage({ storeInfo }) {
 
     window.addEventListener('keydown', handleScannerKeyDown, true);
     return () => window.removeEventListener('keydown', handleScannerKeyDown, true);
-  }, [catalogProducts]);
+  }, [catalogProducts, scanQuantity]);
 
   const isWeightProduct = (product) => {
     const unit = product.unit?.trim().toLowerCase();
@@ -275,6 +303,22 @@ export default function CounterPOSPage({ storeInfo }) {
     });
 
     setSearchQuery('');
+  };
+
+  const addProductUsingScanQuantity = (product) => {
+    // An empty quantity means one unit for quick scanning.
+    const quantity = scanQuantity === '' ? 1 : Number(scanQuantity);
+    if (!Number.isFinite(quantity) || quantity < 1) {
+      setErrorMessage('Enter a quantity of at least 1 before scanning.');
+      return;
+    }
+
+    if (isWeightProduct(product)) {
+      setWeightProduct(product);
+    } else {
+      addProductToCartWithQuantity(product, quantity);
+    }
+    setScanQuantity('');
   };
 
   // Update Cart Quantity
@@ -466,7 +510,7 @@ export default function CounterPOSPage({ storeInfo }) {
       <div className="counter-workflow-column">
         {/* Prominent running total for the cashier */}
         <div className="grand-total-box counter-total-box">
-          <span className="grand-total-label">Total Amount</span>
+          <span className="grand-total-label">TOTAL AMOUNT DUE</span>
           <span className="grand-total-value">{formatCurrency(grandTotal)}</span>
         </div>
 
@@ -482,8 +526,32 @@ export default function CounterPOSPage({ storeInfo }) {
               title="Search by product name, SKU, or barcode. Press Enter to add an exact SKU or barcode."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleProductSearchKeyDown}
+              aria-activedescendant={highlightedSearchIndex >= 0 ? `product-search-result-${visibleSearchProducts[highlightedSearchIndex]?.id}` : undefined}
               autoComplete="off"
             />
+            <label className="scan-quantity-field" htmlFor="input-scan-quantity">
+              <span>Qty</span>
+              <input
+                id="input-scan-quantity"
+                type="number"
+                min="1"
+                step="1"
+                inputMode="numeric"
+                value={scanQuantity}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    focusProductInput();
+                  }
+                }}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setScanQuantity(value === '' ? '' : Math.max(1, parseInt(value, 10) || 1));
+                }}
+                title="Quantity to add when scanning the next product"
+              />
+            </label>
           </form>
           <div className="counter-header-actions">
             <button
@@ -499,13 +567,15 @@ export default function CounterPOSPage({ storeInfo }) {
 
         {searchQuery.trim() && (
           <div className="search-results-list counter-search-results" aria-label="Matching products">
-            {filteredCatalogProducts.slice(0, 8).map((product) => (
+            {visibleSearchProducts.map((product, index) => (
               <button
                 type="button"
                 key={product.id}
-                className="search-result-row"
+                id={`product-search-result-${product.id}`}
+                className={`search-result-row ${highlightedSearchIndex === index ? 'is-highlighted' : ''}`}
                 onClick={() => addProductToCart(product)}
                 disabled={maxPaidQuantity(product) < 1}
+                aria-selected={highlightedSearchIndex === index}
               >
                 <span>
                   <strong>{product.name}</strong>

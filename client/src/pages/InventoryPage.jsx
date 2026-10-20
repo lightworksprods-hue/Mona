@@ -16,8 +16,7 @@ export default function InventoryPage() {
   const [adjustmentData, setAdjustmentData] = useState({
     productId: '',
     type: 'RESTOCK',
-    quantity: 1,
-    reason: '',
+    quantity: '',
   });
 
   useEffect(() => {
@@ -70,8 +69,7 @@ export default function InventoryPage() {
       setAdjustmentData({
         productId: products[0]?.id || '',
         type: 'RESTOCK',
-        quantity: 1,
-        reason: '',
+        quantity: '',
       });
       loadSummary();
       loadMovements();
@@ -131,7 +129,7 @@ export default function InventoryPage() {
             className={`btn ${activeTab === 'adjust' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
             onClick={() => setActiveTab('adjust')}
           >
-            + Adjust Stock
+            Adjust Stock
           </button>
           <span className="export-toolbar-divider" />
           <button className="btn btn-secondary btn-sm" onClick={exportInventoryCsv} disabled={!summary}>Export CSV</button>
@@ -290,11 +288,16 @@ export default function InventoryPage() {
       {activeTab === 'adjust' && (
         <div className="pos-panel" style={{ maxWidth: '600px', margin: '0 auto', width: '100%' }}>
           <div className="pos-panel-header">
-            <span className="pos-panel-title">Record Stock Intake / Adjustment</span>
+            <div>
+              <span className="pos-panel-title">Update Stock</span>
+              <div style={{ marginTop: '4px', color: 'var(--secondary-text)', fontSize: '12px' }}>
+                Add deliveries or record stock changes.
+              </div>
+            </div>
           </div>
           <form onSubmit={handleAdjustSubmit} style={{ padding: '20px' }}>
             <div className="form-group">
-              <label className="field-label">Select Product *</label>
+              <label className="field-label">Product *</label>
               <select
                 className="form-control"
                 required
@@ -303,52 +306,51 @@ export default function InventoryPage() {
               >
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} (Current Stock: {p.stockQuantity} {p.unit})
+                    {p.name} · {p.stockQuantity} {p.unit} in stock
                   </option>
                 ))}
               </select>
             </div>
 
             <div className="form-group">
-              <label className="field-label">Adjustment Type *</label>
+              <label className="field-label">What would you like to do? *</label>
               <select
                 className="form-control"
                 value={adjustmentData.type}
                 onChange={(e) => setAdjustmentData({ ...adjustmentData, type: e.target.value })}
               >
-                <option value="RESTOCK">Restock (Add stock from supplier)</option>
-                <option value="MANUAL_ADJUSTMENT">Manual Inventory Count Adjustment</option>
-                <option value="DAMAGE">Damaged Goods (Deduct stock)</option>
-                <option value="EXPIRED">Expired Stock (Deduct stock)</option>
+                <option value="RESTOCK">Add stock — new delivery</option>
+                <option value="MANUAL_ADJUSTMENT">Correct stock — physical count</option>
+                <option value="DAMAGE">Remove stock — damaged goods</option>
+                <option value="EXPIRED">Remove stock — expired goods</option>
               </select>
             </div>
 
             <div className="form-group">
-              <label className="field-label">Quantity to Adjust *</label>
+              <label className="field-label">
+                {adjustmentData.type === 'MANUAL_ADJUSTMENT' ? 'New total stock *' : 'Quantity *'}
+              </label>
               <input
                 type="number"
                 min="1"
                 required
                 className="form-control"
+                placeholder="Enter quantity"
                 value={adjustmentData.quantity}
-                onChange={(e) => setAdjustmentData({ ...adjustmentData, quantity: parseInt(e.target.value, 10) || 1 })}
+                onChange={(e) => setAdjustmentData({
+                  ...adjustmentData,
+                  quantity: e.target.value === '' ? '' : parseInt(e.target.value, 10) || '',
+                })}
               />
-            </div>
-
-            <div className="form-group">
-              <label className="field-label">Reason / Supplier PO / Note *</label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. PO#1042 Delivery, Physical Inventory Count, Bottle Broken"
-                className="form-control"
-                value={adjustmentData.reason}
-                onChange={(e) => setAdjustmentData({ ...adjustmentData, reason: e.target.value })}
-              />
+              <small style={{ display: 'block', marginTop: '5px', color: 'var(--secondary-text)' }}>
+                {adjustmentData.type === 'MANUAL_ADJUSTMENT'
+                  ? 'Enter the actual total quantity counted in the store.'
+                  : 'Enter the number of units to add or remove.'}
+              </small>
             </div>
 
             <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }}>
-              Confirm and Log Stock Movement
+              Save Stock Update
             </button>
           </form>
         </div>

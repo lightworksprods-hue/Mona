@@ -24,7 +24,7 @@ import {
 
 export default function App() {
   const { user, loading, isAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState('pos');
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('mona-active-tab') || 'pos');
   const [cashDrawerOpen, setCashDrawerOpen] = useState(null);
   const [storeInfo, setStoreInfo] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('mona-theme') || 'light');
@@ -37,6 +37,10 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('mona-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('mona-active-tab', activeTab);
+  }, [activeTab]);
 
   useEffect(() => {
     if (user) {
@@ -68,6 +72,12 @@ export default function App() {
   useEffect(() => {
     if (user && !isAdmin && cashDrawerOpen === false) setActiveTab('cash');
   }, [user, isAdmin, cashDrawerOpen]);
+
+  useEffect(() => {
+    if (user && !isAdmin && !['pos', 'transactions', 'cash'].includes(activeTab)) {
+      setActiveTab(cashDrawerOpen === false ? 'cash' : 'pos');
+    }
+  }, [user, isAdmin, activeTab, cashDrawerOpen]);
 
   useEffect(() => {
     const updateOnlineStatus = () => setIsOnline(navigator.onLine);

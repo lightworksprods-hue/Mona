@@ -10,6 +10,7 @@ router.post('/rewards', authenticate, requireRole('ADMIN'), customerController.c
 router.put('/rewards/:id', authenticate, requireRole('ADMIN'), customerController.updateReward);
 router.delete('/rewards/:id', authenticate, requireRole('ADMIN'), customerController.deleteReward);
 router.post('/redeem', authenticate, customerController.redeem);
+router.post('/', authenticate, requireRole('ADMIN'), customerController.create);
 router.get('/', authenticate, requireRole('ADMIN'), customerController.list);
 
 module.exports = router;

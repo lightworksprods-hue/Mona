@@ -4,6 +4,27 @@ function normalizePhone(phone) {
   return String(phone || '').trim().replace(/[\s()-]/g, '');
 }
 
+exports.create = async (req, res, next) => {
+  try {
+    const phone = normalizePhone(req.body.phone);
+    const fullName = String(req.body.fullName || '').trim();
+    if (!phone || phone.replace(/\D/g, '').length < 7) {
+      return res.status(400).json({ success: false, message: 'A valid phone number with at least 7 digits is required.' });
+    }
+    if (fullName.length > 100) {
+      return res.status(400).json({ success: false, message: 'Customer name must be 100 characters or fewer.' });
+    }
+    const customer = await prisma.customer.create({
+      data: { phone, fullName: fullName || null },
+      select: { id: true, phone: true, fullName: true, pointsBalance: true, totalSpent: true, createdAt: true, updatedAt: true },
+    });
+    res.status(201).json({ success: true, data: customer });
+  } catch (error) {
+    if (error.code === 'P2002') return res.status(409).json({ success: false, message: 'A customer with this phone number already exists.' });
+    next(error);
+  }
+};
+
 function rewardSelect() {
   return {
     id: true,

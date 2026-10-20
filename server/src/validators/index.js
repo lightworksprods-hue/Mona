@@ -50,7 +50,7 @@ const stockAdjustmentValidator = [
   body('productId').notEmpty().withMessage('Product ID is required'),
   body('type').isIn(['RESTOCK', 'MANUAL_ADJUSTMENT', 'DAMAGE', 'EXPIRED']).withMessage('Invalid movement type'),
   body('quantity').isFloat({ min: 0.001 }).withMessage('Quantity must be greater than 0'),
-  body('reason').trim().notEmpty().withMessage('Adjustment reason is required'),
+  body('reason').optional().trim(),
 ];
 
 const refundValidator = [

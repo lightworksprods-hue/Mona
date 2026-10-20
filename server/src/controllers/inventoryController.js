@@ -63,6 +63,7 @@ exports.getInventorySummary = async (req, res, next) => {
 exports.adjustStock = async (req, res, next) => {
   try {
     const { productId, type, quantity, reason } = req.body;
+    const movementReason = reason?.trim() || `Stock update: ${type.replace('_', ' ').toLowerCase()}`;
 
     const qty = parseFloat(quantity);
     if (isNaN(qty) || qty <= 0) {
@@ -85,8 +86,9 @@ exports.adjustStock = async (req, res, next) => {
         });
       }
     } else if (type === 'MANUAL_ADJUSTMENT') {
-      // If client provides net delta or manual count
-      change = req.body.delta !== undefined ? parseFloat(req.body.delta) : qty;
+      // A manual adjustment is an absolute stock count, not an amount to add.
+      // Example: current stock 50, entered count 70 => change is +20.
+      change = qty - Number(product.stockQuantity);
       if (Number(product.stockQuantity) + change < 0) {
         return res.status(400).json({
           success: false,
@@ -116,7 +118,7 @@ exports.adjustStock = async (req, res, next) => {
           type,
           quantity: change,
           balanceAfter: p.stockQuantity,
-          reason,
+          reason: movementReason,
           userId: req.user.id,
         },
         include: {
@@ -133,7 +135,7 @@ exports.adjustStock = async (req, res, next) => {
       action: 'STOCK_ADJUSTED',
       entity: 'Product',
       entityId: productId,
-      details: { type, change, reason, newBalance: updated.product.stockQuantity },
+      details: { type, change, reason: movementReason, newBalance: updated.product.stockQuantity },
       ipAddress: req.ip,
     });
 

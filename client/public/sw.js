@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mona-pos-shell-v3';
+const CACHE_NAME = 'mona-pos-shell-v4';
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/mona-removebg-preview.png'];
 
 self.addEventListener('install', (event) => {

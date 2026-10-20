@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
+import { downloadCsv } from '../utils/reportExport';
 
 const eanParity = [
   'LLLLLL', 'LLGLGG', 'LLGGLG', 'LLGGGL', 'LGLLGG',
@@ -48,12 +49,14 @@ export default function ProductsPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isGeneratingBarcode, setIsGeneratingBarcode] = useState(false);
+  const [isGeneratingSku, setIsGeneratingSku] = useState(false);
   const [categoryName, setCategoryName] = useState('');
   const [categoryDescription, setCategoryDescription] = useState('');
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [isImportingProducts, setIsImportingProducts] = useState(false);
+  const [isExportingProducts, setIsExportingProducts] = useState(false);
 
   // Modal / Form state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -296,6 +299,64 @@ export default function ProductsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const exportProductsCsv = async () => {
+    setErrorMessage('');
+    setSuccessMessage('');
+    setIsExportingProducts(true);
+
+    try {
+      // Export the complete catalog, regardless of the current search/status filters.
+      const res = await api.getProducts({});
+      const allProducts = res.data || [];
+      const date = new Date().toISOString().slice(0, 10);
+
+      downloadCsv(`products-${date}.csv`, [{
+        headers: [
+          'id',
+          'name',
+          'sku',
+          'barcode',
+          'category',
+          'description',
+          'costPrice',
+          'sellingPrice',
+          'stockQuantity',
+          'minStockLevel',
+          'unit',
+          'taxRate',
+          'buyOneTakeOne',
+          'isActive',
+          'createdAt',
+          'updatedAt',
+        ],
+        rows: allProducts.map((product) => [
+          product.id,
+          product.name,
+          product.sku,
+          product.barcode,
+          product.category?.name || '',
+          product.description || '',
+          product.costPrice,
+          product.sellingPrice,
+          product.stockQuantity,
+          product.minStockLevel,
+          product.unit,
+          product.taxRate,
+          product.buyOneTakeOne,
+          product.isActive,
+          product.createdAt,
+          product.updatedAt,
+        ]),
+      }]);
+
+      setSuccessMessage(`Exported ${allProducts.length} product${allProducts.length === 1 ? '' : 's'} to CSV.`);
+    } catch (err) {
+      setErrorMessage(err.message || 'Unable to export products.');
+    } finally {
+      setIsExportingProducts(false);
+    }
+  };
+
   const handleOpenAdd = () => {
     setEditingProduct(null);
     setFormData({
@@ -367,6 +428,37 @@ export default function ProductsPage() {
     }
   };
 
+  const handleGenerateSku = async () => {
+    const words = formData.name.trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) {
+      setErrorMessage('Enter a product name before generating a SKU.');
+      return;
+    }
+
+    setIsGeneratingSku(true);
+    setErrorMessage('');
+    try {
+      const res = await api.getProducts({});
+      const existingProducts = res.data || [];
+      const sourceWord = words.length > 1 ? words[1] : words[0];
+      const prefix = sourceWord.replace(/[^a-z0-9]/gi, '').slice(0, 5).toUpperCase() || 'PROD';
+      const skuPattern = new RegExp(`^${prefix}-(\\d+)$`, 'i');
+      const usedNumbers = existingProducts
+        .filter((product) => product.id !== editingProduct?.id)
+        .map((product) => product.sku?.match(skuPattern)?.[1])
+        .filter(Boolean)
+        .map(Number);
+
+      let nextNumber = 1;
+      while (usedNumbers.includes(nextNumber)) nextNumber += 1;
+      setFormData((current) => ({ ...current, sku: `${prefix}-${String(nextNumber).padStart(3, '0')}` }));
+    } catch (err) {
+      setErrorMessage(err.message || 'Unable to generate SKU.');
+    } finally {
+      setIsGeneratingSku(false);
+    }
+  };
+
   const handleDelete = async (id, name) => {
     if (window.confirm(`Are you sure you want to deactivate or remove product "${name}"?`)) {
       try {
@@ -383,9 +475,19 @@ export default function ProductsPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div className="pos-panel-header" style={{ borderRadius: 'var(--radius-sm)' }}>
         <h1 className="pos-panel-title" style={{ fontSize: '18px' }}>Product Catalog Management</h1>
-        <button id="btn-add-product" className="btn btn-primary" onClick={handleOpenAdd}>
-          + Add Product
-        </button>
+        <div className="product-header-actions">
+          <button id="btn-add-product" className="btn btn-primary" onClick={handleOpenAdd}>
+            + Add Product
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={exportProductsCsv}
+            disabled={isExportingProducts}
+          >
+            {isExportingProducts ? 'Exporting...' : 'Export CSV'}
+          </button>
+        </div>
       </div>
 
       <div className="pos-panel bulk-import-card">
@@ -654,13 +756,19 @@ export default function ProductsPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="form-group">
                     <label className="field-label">SKU (Stock Keeping Unit) *</label>
-                    <input
-                      type="text"
-                      required
-                      className="form-control"
-                      value={formData.sku}
-                      onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                    />
+                    <div style={{ display: 'flex', gap: '7px' }}>
+                      <input
+                        type="text"
+                        required
+                        className="form-control"
+                        value={formData.sku}
+                        onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                      />
+                      <button type="button" className="btn btn-secondary" onClick={handleGenerateSku} disabled={isGeneratingSku}>
+                        {isGeneratingSku ? 'Generating...' : 'Generate'}
+                      </button>
+                    </div>
+                    <small style={{ color: 'var(--secondary-text)' }}>Example: Bayani chicken siomai → CHICK-003</small>
                   </div>
                   <div className="form-group">
                     <label className="field-label">Barcode (EAN/UPC) *</label>

@@ -93,6 +93,7 @@ export const api = {
   updateLoyaltyReward: (id, payload) => request(`/customers/rewards/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deleteLoyaltyReward: (id) => request(`/customers/rewards/${id}`, { method: 'DELETE' }),
   redeemLoyaltyReward: (payload) => request('/customers/redeem', { method: 'POST', body: JSON.stringify(payload) }),
+  createCustomer: (payload) => request('/customers', { method: 'POST', body: JSON.stringify(payload) }),
   getCustomers: (search = '') => request(`/customers${search ? `?search=${encodeURIComponent(search)}` : ''}`),
 
   // Inventory

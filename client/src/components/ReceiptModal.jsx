@@ -82,6 +82,20 @@ export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onN
               <span>{saleData.cashier?.fullName || saleData.cashier?.username || 'Counter Staff'}</span>
             </div>
 
+            {saleData.customer && (
+              <>
+                <div className="receipt-separator" />
+                <div className="receipt-row">
+                  <span>Loyalty member:</span>
+                  <span>{saleData.customer.fullName || saleData.customer.phone}</span>
+                </div>
+                <div className="receipt-row" style={{ fontWeight: 'bold' }}>
+                  <span>Points balance:</span>
+                  <span>{Number(saleData.customer.pointsBalance || 0).toLocaleString()} pts</span>
+                </div>
+              </>
+            )}
+
             <div className="receipt-separator" />
 
             {/* Line Items */}

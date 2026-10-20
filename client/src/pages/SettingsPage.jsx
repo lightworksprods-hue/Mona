@@ -22,6 +22,7 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
   const [devices, setDevices] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [customerSearch, setCustomerSearch] = useState('');
+  const [customerForm, setCustomerForm] = useState({ fullName: '', phone: '' });
   const [products, setProducts] = useState([]);
   const [rewards, setRewards] = useState([]);
   const [rewardForm, setRewardForm] = useState({ productId: '', pointsCost: '' });
@@ -86,6 +87,20 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
       setCustomers(res.data || []);
     } catch (err) {
       setErrorMessage(err.message || 'Failed to load customers');
+    }
+  };
+
+  const handleCreateCustomer = async (event) => {
+    event.preventDefault();
+    setErrorMessage('');
+    setSuccessMessage('');
+    try {
+      await api.createCustomer(customerForm);
+      setCustomerForm({ fullName: '', phone: '' });
+      setSuccessMessage('Customer added to the loyalty program.');
+      loadCustomers();
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to add customer');
     }
   };
 
@@ -497,6 +512,23 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
             </div>
             <button className="btn btn-secondary btn-sm" onClick={() => loadCustomers()}>Refresh</button>
           </div>
+          <form className="customer-create-row" onSubmit={handleCreateCustomer}>
+            <input
+              className="form-control"
+              placeholder="Customer name (optional)"
+              value={customerForm.fullName}
+              onChange={(e) => setCustomerForm({ ...customerForm, fullName: e.target.value })}
+            />
+            <input
+              className="form-control"
+              type="tel"
+              required
+              placeholder="Phone number"
+              value={customerForm.phone}
+              onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
+            />
+            <button className="btn btn-primary" type="submit">Add Customer</button>
+          </form>
           <div className="customer-search-row">
             <input
               className="form-control"
