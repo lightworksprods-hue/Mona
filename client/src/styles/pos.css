@@ -3244,3 +3244,18 @@ html[data-theme='dark'] .pos-table tbody tr:hover {
 html[data-theme='dark'] .pos-table tbody tr:hover td {
   color: var(--primary-text);
 }
+
+/* Dark-theme form controls need an explicit foreground color because some
+   browsers otherwise keep the default black input text. */
+html[data-theme='dark'] input,
+html[data-theme='dark'] select,
+html[data-theme='dark'] textarea {
+  color: var(--primary-text);
+  caret-color: var(--primary-pink);
+}
+
+html[data-theme='dark'] input::placeholder,
+html[data-theme='dark'] textarea::placeholder {
+  color: var(--secondary-text);
+  opacity: 1;
+}
