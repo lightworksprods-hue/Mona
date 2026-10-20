@@ -3023,6 +3023,171 @@ header {
   }
 }
 
+/* Keep the full POS page scrollable on phones. The desktop workstation uses
+   clipped panels, but that prevents the checkout section from being reached
+   when the two columns stack vertically. */
+@media (max-width: 700px) {
+  html,
+  body,
+  #root,
+  .app-container {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+
+  .main-viewport.pos-main-viewport {
+    overflow-x: hidden;
+    overflow-y: visible;
+  }
+
+  .pos-layout,
+  .counter-workflow-column,
+  .pos-layout > .pos-panel,
+  .pos-layout > .summary-panel {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .pos-layout > .summary-panel {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .payment-section,
+  .payment-scroll-area {
+    min-height: auto;
+    overflow: visible;
+  }
+
+  /* Shared page content protections */
+  .main-viewport > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .pos-panel-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .pos-panel-header > * {
+    min-width: 0;
+  }
+
+  .pos-panel-title {
+    overflow-wrap: anywhere;
+  }
+
+  .product-header-actions,
+  .report-toolbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .system-control-card,
+  .offline-queue-warning,
+  .device-id-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .loyalty-settings-card,
+  .receipt-settings-card {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-reward-redemption-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .table-container,
+  .cash-history-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-dialog {
+    width: 100%;
+    max-width: calc(100vw - 24px);
+  }
+
+  .modal-body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+}
+
+/* Tablet layout: keep the workstation and admin pages inside the viewport
+   while allowing their longer stacked sections to scroll naturally. */
+@media (min-width: 701px) and (max-width: 1024px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  .main-viewport {
+    padding: 14px 16px 20px;
+  }
+
+  .main-viewport.pos-main-viewport {
+    overflow-x: hidden;
+    overflow-y: visible;
+  }
+
+  .pos-layout {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+  }
+
+  .pos-layout,
+  .counter-workflow-column,
+  .pos-layout > .pos-panel,
+  .pos-layout > .summary-panel {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .pos-layout > .summary-panel {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .payment-section,
+  .payment-scroll-area {
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .product-filters {
+    grid-template-columns: minmax(0, 1fr) minmax(150px, 0.7fr);
+  }
+
+  .dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .loyalty-settings-card,
+  .receipt-settings-card {
+    grid-template-columns: minmax(0, 1fr) 170px;
+  }
+
+  .pos-panel-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
+
 /* The compact/mobile layout should grow with its content instead of being
    constrained to the desktop viewport shell. */
 @media (max-width: 1024px) {
@@ -3048,5 +3213,25 @@ header {
 
   .pos-layout > .summary-panel {
     overflow: hidden;
+  }
+}
+
+/* Final overflow corrections must come after the legacy desktop overrides. */
+@media (max-width: 1024px) {
+  .main-viewport.pos-main-viewport {
+    overflow-x: hidden;
+    overflow-y: visible;
+  }
+
+  .pos-layout > .summary-panel {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .payment-section,
+  .payment-scroll-area {
+    min-height: auto;
+    overflow: visible;
   }
 }
