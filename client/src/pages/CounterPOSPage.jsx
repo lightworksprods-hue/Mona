@@ -5,10 +5,16 @@ import ReceiptModal from '../components/ReceiptModal';
 import WeightPromptModal from '../components/WeightPromptModal';
 import { cacheProducts, getCachedProducts, isNetworkError, queueSale } from '../utils/offlineStore';
 
-function formatTenderedInput(value) {
+function formatTenderedInput(value, showDecimals = false) {
   if (value === '') return '';
   const [whole = '', decimal] = String(value).split('.');
   const groupedWhole = Number(whole || 0).toLocaleString('en-PH');
+  if (showDecimals) {
+    return Number(value || 0).toLocaleString('en-PH', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
   return decimal === undefined ? groupedWhole : `${groupedWhole}.${decimal}`;
 }
 
@@ -26,6 +32,7 @@ export default function CounterPOSPage({ storeInfo }) {
   // Payment State
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [amountTendered, setAmountTendered] = useState('');
+  const [isAmountTenderedFocused, setIsAmountTenderedFocused] = useState(false);
   const [paymentReference, setPaymentReference] = useState('');
   const [notes, setNotes] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -847,20 +854,28 @@ export default function CounterPOSPage({ storeInfo }) {
           {paymentMethod === 'CASH' && (
             <div className="tendered-field-group">
               <label className="field-label">Amount Received</label>
-              <input
-                id="input-amount-tendered"
-                type="text"
-                inputMode="decimal"
-                className="input-money"
-                placeholder="0.00"
-                value={formatTenderedInput(amountTendered)}
-                onChange={(event) => {
-                  const rawValue = event.target.value.replace(/,/g, '');
-                  if (/^\d*(?:\.\d{0,2})?$/.test(rawValue)) {
-                    setAmountTendered(rawValue);
-                  }
-                }}
-              />
+              <div className="money-input-wrapper">
+                <span className="money-input-prefix" aria-hidden="true">₱</span>
+                <input
+                  id="input-amount-tendered"
+                  type="text"
+                  inputMode="decimal"
+                  className="input-money"
+                  placeholder="0.00"
+                  value={formatTenderedInput(amountTendered, !isAmountTenderedFocused)}
+                  onFocus={() => setIsAmountTenderedFocused(true)}
+                  onBlur={() => {
+                    setIsAmountTenderedFocused(false);
+                    if (amountTendered !== '') setAmountTendered(Number(amountTendered).toFixed(2));
+                  }}
+                  onChange={(event) => {
+                    const rawValue = event.target.value.replace(/,/g, '');
+                    if (/^\d*(?:\.\d{0,2})?$/.test(rawValue)) {
+                      setAmountTendered(rawValue);
+                    }
+                  }}
+                />
+              </div>
 
               {/* Quick Cash Buttons */}
               <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>

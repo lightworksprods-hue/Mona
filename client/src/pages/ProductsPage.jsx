@@ -60,6 +60,8 @@ export default function ProductsPage() {
   const [editingCategory, setEditingCategory] = useState(null);
   const [isImportingProducts, setIsImportingProducts] = useState(false);
   const [isExportingProducts, setIsExportingProducts] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [isDeletingProduct, setIsDeletingProduct] = useState(false);
 
   // Modal / Form state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -469,15 +471,23 @@ export default function ProductsPage() {
     }
   };
 
-  const handleDelete = async (id, name) => {
-    if (window.confirm(`Are you sure you want to deactivate or remove product "${name}"?`)) {
-      try {
-        await api.deleteProduct(id);
-        setSuccessMessage(`Product "${name}" handled successfully.`);
-        loadProducts();
-      } catch (err) {
-        setErrorMessage(err.message || 'Error deleting product');
-      }
+  const handleDelete = (id, name) => {
+    setProductToDelete({ id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (!productToDelete) return;
+
+    setIsDeletingProduct(true);
+    try {
+      await api.deleteProduct(productToDelete.id);
+      setSuccessMessage(`Product "${productToDelete.name}" handled successfully.`);
+      setProductToDelete(null);
+      loadProducts();
+    } catch (err) {
+      setErrorMessage(err.message || 'Error deleting product');
+    } finally {
+      setIsDeletingProduct(false);
     }
   };
 
@@ -950,6 +960,48 @@ export default function ProductsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {productToDelete && (
+        <div
+          className="modal-overlay product-confirm-overlay"
+          onMouseDown={() => !isDeletingProduct && setProductToDelete(null)}
+        >
+          <div
+            className="product-confirm-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="product-confirm-title"
+            aria-describedby="product-confirm-description"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="product-confirm-icon" aria-hidden="true">!</div>
+            <div className="product-confirm-content">
+              <h2 id="product-confirm-title">Remove product?</h2>
+              <p id="product-confirm-description">
+                Are you sure you want to deactivate or remove <strong>“{productToDelete.name}”</strong>?
+              </p>
+              <div className="product-confirm-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setProductToDelete(null)}
+                  disabled={isDeletingProduct}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={confirmDelete}
+                  disabled={isDeletingProduct}
+                >
+                  {isDeletingProduct ? 'Removing...' : 'Remove product'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
