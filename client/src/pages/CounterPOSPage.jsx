@@ -628,7 +628,7 @@ export default function CounterPOSPage({ storeInfo }) {
               <thead>
                 <tr>
                   <th>Product</th>
-                  <th>Barcode / SKU</th>
+                  <th>Barcode</th>
                   <th style={{ textAlign: 'right' }}>Price</th>
                   <th style={{ textAlign: 'center' }}>Qty</th>
                   <th style={{ textAlign: 'right' }}>Total</th>
@@ -640,13 +640,9 @@ export default function CounterPOSPage({ storeInfo }) {
                   <tr key={`${item.product.id}-${item.isReward ? 'reward' : 'regular'}`}>
                     <td>
                       <div style={{ fontWeight: '600' }}>{item.product.name} {item.isReward && <span className="promotion-badge">POINTS REWARD</span>} {!item.isReward && item.product.buyOneTakeOne && <span className="promotion-badge">BUY 1 TAKE 1</span>}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--secondary-text)' }}>
-                        Unit: {item.product.unit} | Stock: {item.product.stockQuantity}{item.product.buyOneTakeOne ? ` | Free units: ${item.quantity}` : ''}
-                      </div>
                     </td>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
                       {item.product.barcode}
-                      <div style={{ fontSize: '10px', color: 'var(--secondary-text)' }}>{item.product.sku}</div>
                     </td>
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
                       {formatCurrency(item.unitPrice)}
