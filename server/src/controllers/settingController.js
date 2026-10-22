@@ -142,9 +142,18 @@ exports.getAuditLogs = async (req, res, next) => {
     const { limit = 50, page = 1 } = req.query;
     const take = Math.min(parseInt(limit, 10) || 50, 100);
     const skip = ((parseInt(page, 10) || 1) - 1) * take;
+    const where = req.user.role === 'SUPERADMIN'
+      ? undefined
+      : {
+          OR: [
+            { userId: null },
+            { user: { role: { not: 'SUPERADMIN' } } },
+          ],
+        };
 
     const [logs, total] = await Promise.all([
       prisma.auditLog.findMany({
+        where,
         include: {
           user: { select: { fullName: true, username: true, role: true } },
         },
@@ -152,7 +161,7 @@ exports.getAuditLogs = async (req, res, next) => {
         take,
         skip,
       }),
-      prisma.auditLog.count(),
+      prisma.auditLog.count({ where }),
     ]);
 
     res.json({
