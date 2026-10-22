@@ -81,6 +81,7 @@ export const api = {
   // Cash drawer reconciliation
   getCashCurrent: () => request('/cash/current'),
   getCashHistory: () => request('/cash/history'),
+  openCashDrawer: () => request('/cash/open-hardware', { method: 'POST' }),
   openCashSession: (payload) => request('/cash/open', { method: 'POST', body: JSON.stringify(payload) }),
   addCashMovement: (payload) => request('/cash/movement', { method: 'POST', body: JSON.stringify(payload) }),
   closeCashSession: (payload) => request('/cash/close', { method: 'POST', body: JSON.stringify(payload) }),

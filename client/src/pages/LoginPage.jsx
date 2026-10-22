@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import AlertToast from '../components/AlertToast';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -72,9 +73,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {errorMessage && (
-          <div className="alert alert-error" style={{ marginBottom: '16px' }}>{errorMessage}</div>
-        )}
+        {errorMessage && <AlertToast type="error" message={errorMessage} onClose={() => setErrorMessage('')} />}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">

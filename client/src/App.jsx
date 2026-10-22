@@ -177,7 +177,13 @@ export default function App() {
           </div>
         )}
         <Suspense fallback={<div className="page-state">Loading page...</div>}>
-          {activeTab === 'pos' && (isAdmin || cashDrawerOpen === true) && <CounterPOSPage storeInfo={storeInfo} />}
+          {activeTab === 'pos' && (isAdmin || cashDrawerOpen === true) && (
+            <CounterPOSPage
+              storeInfo={storeInfo}
+              cashDrawerOpen={cashDrawerOpen}
+              onOpenCashDrawer={() => setActiveTab('cash')}
+            />
+          )}
           {activeTab === 'products' && isAdmin && <ProductsPage />}
           {activeTab === 'inventory' && isAdmin && <InventoryPage />}
           {activeTab === 'transactions' && <TransactionsPage storeInfo={storeInfo} />}

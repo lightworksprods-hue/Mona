@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import AlertToast from '../components/AlertToast';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 import { downloadCsv, printReport } from '../utils/reportExport';
 
@@ -11,6 +12,8 @@ export default function InventoryPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [productSearch, setProductSearch] = useState('');
+  const [productCategory, setProductCategory] = useState('ALL');
 
   // Stock Adjustment Form
   const [adjustmentData, setAdjustmentData] = useState({
@@ -80,6 +83,18 @@ export default function InventoryPage() {
     }
   };
 
+  const categoryOptions = Array.from(new Set(
+    products.map((product) => product.category?.name || 'Uncategorized')
+  )).sort((a, b) => a.localeCompare(b));
+  const filteredAdjustmentProducts = products.filter((product) => {
+    const query = productSearch.trim().toLowerCase();
+    const matchesSearch = !query || [product.name, product.sku, product.barcode]
+      .some((value) => String(value || '').toLowerCase().includes(query));
+    const matchesCategory = productCategory === 'ALL'
+      || (product.category?.name || 'Uncategorized') === productCategory;
+    return matchesSearch && matchesCategory;
+  });
+
   const exportInventoryCsv = () => {
     if (!summary) return;
     downloadCsv(`mona-inventory-${new Date().toISOString().slice(0, 10)}.csv`, [
@@ -137,8 +152,8 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {errorMessage && <div className="alert alert-error">{errorMessage}</div>}
-      {successMessage && <div className="alert alert-success">{successMessage}</div>}
+      {errorMessage && <AlertToast type="error" message={errorMessage} onClose={() => setErrorMessage('')} />}
+      {successMessage && <AlertToast message={successMessage} onClose={() => setSuccessMessage('')} />}
 
       {/* OVERVIEW METRICS */}
       {summary && (
@@ -298,13 +313,34 @@ export default function InventoryPage() {
           <form onSubmit={handleAdjustSubmit} style={{ padding: '20px' }}>
             <div className="form-group">
               <label className="field-label">Product *</label>
+              <div className="inventory-product-filters">
+                <input
+                  type="search"
+                  className="form-control"
+                  placeholder="Search product, SKU, or barcode"
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                />
+                <select
+                  className="form-control"
+                  value={productCategory}
+                  onChange={(e) => setProductCategory(e.target.value)}
+                  aria-label="Filter products by category"
+                >
+                  <option value="ALL">All categories</option>
+                  {categoryOptions.map((category) => <option key={category} value={category}>{category}</option>)}
+                </select>
+              </div>
+              <small className="inventory-filter-count">
+                {filteredAdjustmentProducts.length} product{filteredAdjustmentProducts.length === 1 ? '' : 's'} found
+              </small>
               <select
                 className="form-control"
                 required
                 value={adjustmentData.productId}
                 onChange={(e) => setAdjustmentData({ ...adjustmentData, productId: e.target.value })}
               >
-                {products.map((p) => (
+                {filteredAdjustmentProducts.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name} · {p.stockQuantity} {p.unit} in stock
                   </option>

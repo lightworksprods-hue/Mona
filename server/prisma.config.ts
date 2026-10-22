@@ -11,8 +11,9 @@ export default defineConfig({
   },
   engine: "classic",
   datasource: {
-    // Use Supabase's direct connection for schema operations. Keep the
-    // pooled DATABASE_URL for the application runtime.
-    url: env("DIRECT_URL"),
+    // Use Supabase's session pooler for schema operations. The direct
+    // db.<project>.supabase.co hostname may resolve only to IPv6 on some
+    // networks, while the session pooler is reachable over IPv4 as well.
+    url: process.env.MIGRATION_DATABASE_URL || env("DIRECT_URL"),
   },
 });

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
 import { formatCurrency, roundMoney } from '../utils/formatters';
 import ReceiptModal from '../components/ReceiptModal';
+import AlertToast from '../components/AlertToast';
 import WeightPromptModal from '../components/WeightPromptModal';
 import { cacheProducts, getCachedProducts, isNetworkError, queueSale } from '../utils/offlineStore';
 
@@ -18,7 +19,7 @@ function formatTenderedInput(value, showDecimals = false) {
   return decimal === undefined ? groupedWhole : `${groupedWhole}.${decimal}`;
 }
 
-export default function CounterPOSPage({ storeInfo }) {
+export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpenCashDrawer }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [scanQuantity, setScanQuantity] = useState('');
   const [highlightedSearchIndex, setHighlightedSearchIndex] = useState(-1);
@@ -417,6 +418,8 @@ export default function CounterPOSPage({ storeInfo }) {
       ? numericTendered >= grandTotal
       : /^\d{4}$/.test(paymentReference.trim()));
 
+  const drawerUnavailable = paymentMethod === 'CASH' && cashDrawerOpen === false;
+
   // Fast cash tender buttons (₱100, ₱500, ₱1,000, Exact)
   const handleQuickCash = (amount) => {
     if (amount === 'exact') {
@@ -435,6 +438,12 @@ export default function CounterPOSPage({ storeInfo }) {
 
     if (paymentMethod === 'CASH' && numericTendered < grandTotal) {
       setErrorMessage(`Insufficient payment. Amount tendered is less than ₱${grandTotal.toFixed(2)}.`);
+      return;
+    }
+
+    if (drawerUnavailable) {
+      setErrorMessage('Open the cash drawer before accepting cash payments.');
+      onOpenCashDrawer?.();
       return;
     }
 
@@ -467,6 +476,11 @@ export default function CounterPOSPage({ storeInfo }) {
       const res = await api.checkout(payload);
 
       if (res.success && res.data) {
+        if (paymentMethod === 'CASH') {
+          // Do not fail a completed sale if the printer is offline. The cashier
+          // can use the manual button on the Cash Drawer page to retry.
+          api.openCashDrawer().catch(() => {});
+        }
         setCompletedSale(res.data);
         // Reset current counter state
         setCart([]);
@@ -599,21 +613,11 @@ export default function CounterPOSPage({ storeInfo }) {
 
         {/* Messages */}
         {errorMessage && (
-          <div className="alert alert-error" style={{ margin: '8px 14px' }}>
-            <span>{errorMessage}</span>
-            <button className="btn btn-secondary btn-sm" onClick={() => setErrorMessage('')}>
-              Dismiss
-            </button>
-          </div>
+          <AlertToast type="error" message={errorMessage} onClose={() => setErrorMessage('')} />
         )}
 
         {successMessage && (
-          <div className="alert alert-success" style={{ margin: '8px 14px' }}>
-            <span>{successMessage}</span>
-            <button className="btn btn-secondary btn-sm" onClick={() => setSuccessMessage('')}>
-              Dismiss
-            </button>
-          </div>
+          <AlertToast message={successMessage} onClose={() => setSuccessMessage('')} />
         )}
 
         {/* Cart Items Table */}
@@ -809,6 +813,17 @@ export default function CounterPOSPage({ storeInfo }) {
           <div className="payment-scroll-area">
           <div>
             <label className="field-label">Payment Method</label>
+            <div className={`pos-drawer-status ${cashDrawerOpen === false ? 'is-closed' : 'is-open'}`}>
+              <span className="pos-drawer-status-dot" aria-hidden="true" />
+              <span>
+                {cashDrawerOpen === false ? 'Cash drawer is closed' : 'Cash drawer ready'}
+                {cashDrawerOpen === false && (
+                  <button type="button" className="pos-drawer-link" onClick={onOpenCashDrawer}>
+                    Open drawer
+                  </button>
+                )}
+              </span>
+            </div>
             <div className="payment-method-selector">
               {['CASH', 'GCASH', 'QRPH'].map((method) => (
                 <button

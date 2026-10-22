@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import AlertToast from '../components/AlertToast';
 import { formatCurrency } from '../utils/formatters';
 import { downloadCsv } from '../utils/reportExport';
 
@@ -571,8 +572,8 @@ export default function ProductsPage() {
         </button>
       </div>
 
-      {errorMessage && <div className="alert alert-error">{errorMessage}</div>}
-      {successMessage && <div className="alert alert-success">{successMessage}</div>}
+      {errorMessage && <AlertToast type="error" message={errorMessage} onClose={() => setErrorMessage('')} />}
+      {successMessage && <AlertToast message={successMessage} onClose={() => setSuccessMessage('')} />}
 
       {/* Products Table */}
       <div className="pos-panel">

@@ -4,6 +4,20 @@ import { formatCurrency, formatDateTime } from '../utils/formatters';
 
 const numberValue = (value) => Number(value || 0);
 
+function friendlyCashDrawerError(error, fallback = 'Something went wrong. Please try again.') {
+  if (!error) return fallback;
+  if (error.code === 'CASH_DRAWER_HARDWARE_ERROR' || error.status === 502) {
+    return 'The cash drawer could not open. Check that the XP-T80A printer is turned on, connected, and ready.';
+  }
+  if (error.status === 503) {
+    return 'Cash drawer hardware is available only on the Windows POS computer.';
+  }
+  if (error.name === 'TypeError' || /network|fetch failed|failed to fetch/i.test(error.message || '')) {
+    return 'The POS could not reach the printer service. Make sure the POS server is running on this computer.';
+  }
+  return error.message || fallback;
+}
+
 export default function CashDrawerPage({ onSessionChange }) {
   const [summary, setSummary] = useState(null);
   const [history, setHistory] = useState([]);
@@ -15,6 +29,7 @@ export default function CashDrawerPage({ onSessionChange }) {
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [openingHardware, setOpeningHardware] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
   const loadData = async () => {
@@ -28,7 +43,7 @@ export default function CashDrawerPage({ onSessionChange }) {
       onSessionChange?.(Boolean(currentResponse.data?.session));
       setHistory(historyResponse.data || []);
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Unable to load cash drawer data.' });
+      setMessage({ type: 'error', text: friendlyCashDrawerError(error, 'Unable to load cash drawer data.') });
     } finally {
       setLoading(false);
     }
@@ -48,7 +63,7 @@ export default function CashDrawerPage({ onSessionChange }) {
       setMessage({ type: 'success', text: successText });
       await loadData();
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'The action could not be completed.' });
+      setMessage({ type: 'error', text: friendlyCashDrawerError(error, 'The action could not be completed.') });
       return false;
     } finally {
       setSaving(false);
@@ -87,6 +102,19 @@ export default function CashDrawerPage({ onSessionChange }) {
     });
   };
 
+  const openPhysicalDrawer = async () => {
+    setOpeningHardware(true);
+    setMessage({ type: '', text: '' });
+    try {
+      await api.openCashDrawer();
+      setMessage({ type: 'success', text: 'Cash drawer opened.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: friendlyCashDrawerError(error, 'Unable to open the cash drawer.') });
+    } finally {
+      setOpeningHardware(false);
+    }
+  };
+
   if (loading) return <div className="page-state">Loading cash drawer...</div>;
 
   return (
@@ -97,12 +125,26 @@ export default function CashDrawerPage({ onSessionChange }) {
           <h1>Cash drawer reconciliation</h1>
           <p>Track the money in the drawer from opening float to closing count.</p>
         </div>
-        <span className={`status-pill ${sessionOpen ? 'status-open' : 'status-closed'}`}>
-          {sessionOpen ? 'Drawer open' : 'No open drawer'}
-        </span>
+        <div className="cash-drawer-header-actions">
+          <button type="button" className="btn btn-secondary" onClick={openPhysicalDrawer} disabled={openingHardware}>
+            {openingHardware ? 'Opening...' : 'Open cash drawer'}
+          </button>
+          <span className={`status-pill ${sessionOpen ? 'status-open' : 'status-closed'}`}>
+            {sessionOpen ? 'Shift started' : 'Shift not started'}
+          </span>
+        </div>
       </div>
 
-      {message.text && <div className={`cash-message ${message.type}`}>{message.text}</div>}
+      {message.text && (
+        <div className={`cash-message-card ${message.type}`} role={message.type === 'error' ? 'alert' : 'status'}>
+          <span className="cash-message-icon" aria-hidden="true">{message.type === 'error' ? '!' : '✓'}</span>
+          <div>
+            <strong>{message.type === 'error' ? 'Drawer not opened' : 'Done'}</strong>
+            <p>{message.text}</p>
+            {message.type === 'error' && <small>Try again after checking the printer connection.</small>}
+          </div>
+        </div>
+      )}
 
       {!sessionOpen ? (
         <div className="pos-panel cash-open-card">

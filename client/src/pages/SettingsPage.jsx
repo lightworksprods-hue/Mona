@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import AlertToast from '../components/AlertToast';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 import { useAuth } from '../context/AuthContext';
 
@@ -268,8 +269,8 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
         </div>
       </div>
 
-      {errorMessage && <div className="alert alert-error">{errorMessage}</div>}
-      {successMessage && <div className="alert alert-success">{successMessage}</div>}
+      {errorMessage && <AlertToast type="error" message={errorMessage} onClose={() => setErrorMessage('')} />}
+      {successMessage && <AlertToast message={successMessage} onClose={() => setSuccessMessage('')} />}
 
       {/* TAB 1: STORE SETTINGS */}
       {activeTab === 'store' && (

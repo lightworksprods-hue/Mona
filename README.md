@@ -57,6 +57,8 @@ Grocery/
    JWT_SECRET="your-super-secure-jwt-secret-key"
    JWT_EXPIRES_IN="12h"
    CLIENT_URL="http://localhost:5173"
+   # Windows printer name used for XP-T80A cash-drawer control
+   CASH_DRAWER_PRINTER_NAME="XP-T80A"
    ```
 5. Apply database migrations to Supabase:
    ```bash

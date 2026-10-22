@@ -16,7 +16,17 @@ function getDeviceIdentity() {
   };
 }
 
-const AuthContext = createContext();
+// Keep consumers from crashing during hot reloads or when a standalone page
+// is rendered outside the provider. The real provider replaces this value.
+const AuthContext = createContext({
+  user: null,
+  token: null,
+  loading: true,
+  login: async () => {},
+  logout: () => {},
+  isAdmin: false,
+  isSuperAdmin: false,
+});
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {

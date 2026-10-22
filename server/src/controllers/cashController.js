@@ -1,6 +1,16 @@
 const prisma = require('../config/db');
+const { openCashDrawer } = require('../services/cashDrawerHardwareService');
 
 const money = (value) => Number(value || 0);
+
+exports.openHardware = async (req, res, next) => {
+  try {
+    const result = await openCashDrawer();
+    res.json({ success: true, message: 'Cash drawer opened.', data: result });
+  } catch (error) {
+    next(error);
+  }
+};
 
 async function calculateSession(session) {
   const sales = await prisma.sale.findMany({

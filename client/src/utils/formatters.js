@@ -12,6 +12,15 @@ export function roundMoney(amount) {
   return Math.round((Number(amount) + Number.EPSILON) * 100) / 100;
 }
 
+// Format item quantities without exposing floating-point precision noise.
+export function formatQuantity(quantity) {
+  const numeric = Number(quantity || 0);
+  return numeric.toLocaleString('en-PH', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3,
+  });
+}
+
 // Format readable date and time
 export function formatDateTime(isoString) {
   if (!isoString) return '';

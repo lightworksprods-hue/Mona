@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { formatCurrency } from '../utils/formatters';
+import AlertToast from '../components/AlertToast';
+import { formatCurrency, formatQuantity } from '../utils/formatters';
 import { downloadCsv, printReport } from '../utils/reportExport';
 
 export default function ReportsPage() {
@@ -115,7 +116,7 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {errorMessage && <div className="alert alert-error">{errorMessage}</div>}
+      {errorMessage && <AlertToast type="error" message={errorMessage} onClose={() => setErrorMessage('')} />}
 
       {/* DASHBOARD REAL-TIME KPI CARDS */}
       {dashboardStats && (
@@ -130,7 +131,7 @@ export default function ReportsPage() {
           </div>
           <div className="metric-card">
             <div className="metric-card-label">Total Units Sold Today</div>
-            <div className="metric-card-value">{dashboardStats.today?.itemsSold} pcs</div>
+            <div className="metric-card-value">{formatQuantity(dashboardStats.today?.itemsSold)} pcs</div>
           </div>
           <div className="metric-card">
             <div className="metric-card-label">Average Basket Size</div>
@@ -151,7 +152,7 @@ export default function ReportsPage() {
             <div className="pos-panel-header"><span className="pos-panel-title">Cashier Performance</span></div>
             <div className="table-container">
               <table className="pos-table analytics-table"><thead><tr><th>Cashier</th><th>Transactions</th><th>Items</th><th style={{ textAlign: 'right' }}>Sales</th></tr></thead>
-                <tbody>{(reportData.cashierPerformance || []).length === 0 ? <tr><td colSpan="4" className="empty-state">No cashier sales recorded.</td></tr> : reportData.cashierPerformance.map((item) => <tr key={item.cashierId}><td><strong>{item.cashierName}</strong><div className="analytics-muted">Avg. {formatCurrency(item.averageSale)}</div></td><td>{item.transactions}</td><td>{item.itemsSold}</td><td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatCurrency(item.sales)}</td></tr>)}</tbody>
+                <tbody>{(reportData.cashierPerformance || []).length === 0 ? <tr><td colSpan="4" className="empty-state">No cashier sales recorded.</td></tr> : reportData.cashierPerformance.map((item) => <tr key={item.cashierId}><td><strong>{item.cashierName}</strong><div className="analytics-muted">Avg. {formatCurrency(item.averageSale)}</div></td><td>{item.transactions}</td><td>{formatQuantity(item.itemsSold)}</td><td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatCurrency(item.sales)}</td></tr>)}</tbody>
               </table>
             </div>
           </div>
@@ -250,7 +251,7 @@ export default function ReportsPage() {
                       <tr key={item.productId}>
                         <td><strong>{item.productName}</strong></td>
                         <td style={{ fontFamily: 'var(--font-mono)' }}>{item.sku}</td>
-                        <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{item.quantity}</td>
+                        <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{formatQuantity(item.quantity)}</td>
                         <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
                           {formatCurrency(item.revenue)}
                         </td>
