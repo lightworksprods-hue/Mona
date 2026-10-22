@@ -48,6 +48,7 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
   // Status & Modals
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [pendingSuccessMessage, setPendingSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedSale, setCompletedSale] = useState(null);
   const [weightProduct, setWeightProduct] = useState(null);
@@ -495,7 +496,7 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
         setSelectedRewardId('');
         setCustomerLookupMessage('');
         const earnedPoints = Number(res.data.loyaltyPointsEarned || 0);
-        setSuccessMessage(`Transaction ${res.data.transactionNumber} completed!${earnedPoints > 0 ? ` ${earnedPoints} loyalty point${earnedPoints === 1 ? '' : 's'} earned.` : ''}`);
+        setPendingSuccessMessage(`Transaction ${res.data.transactionNumber} completed!${earnedPoints > 0 ? ` ${earnedPoints} loyalty point${earnedPoints === 1 ? '' : 's'} earned.` : ''}`);
       }
     } catch (err) {
       if (isNetworkError(err)) {
@@ -968,8 +969,16 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
         saleData={completedSale}
         storeInfo={storeInfo}
         onClose={() => setCompletedSale(null)}
+        onAfterPrint={() => {
+          setCompletedSale(null);
+          setSuccessMessage(pendingSuccessMessage);
+          setPendingSuccessMessage('');
+          focusProductInput();
+        }}
         onNewSale={() => {
           setCompletedSale(null);
+          setSuccessMessage(pendingSuccessMessage);
+          setPendingSuccessMessage('');
           focusProductInput();
         }}
       />

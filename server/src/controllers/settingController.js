@@ -17,6 +17,9 @@ exports.getSettings = async (req, res, next) => {
           receiptPaperWidth: '80mm',
           loyaltyPointsPerHundred: 1.00,
           systemActive: true,
+          maxProducts: 0,
+          maxCustomers: 0,
+          maxLoyaltyRewards: 0,
         },
       });
     } else if (settings.storeName === 'Metro Pink Supermart') {
@@ -30,6 +33,42 @@ exports.getSettings = async (req, res, next) => {
       });
     }
     res.json({ success: true, data: settings });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Superadmin-only catalog and loyalty limits. Zero means unlimited.
+exports.updateLimits = async (req, res, next) => {
+  try {
+    const parseLimit = (value, label) => {
+      const limit = Number(value);
+      if (!Number.isInteger(limit) || limit < 0) {
+        throw { status: 400, message: `${label} must be a whole number of 0 or more.` };
+      }
+      return limit;
+    };
+
+    const data = {
+      maxProducts: parseLimit(req.body.maxProducts, 'Product limit'),
+      maxCustomers: parseLimit(req.body.maxCustomers, 'Customer limit'),
+      maxLoyaltyRewards: parseLimit(req.body.maxLoyaltyRewards, 'Loyalty reward limit'),
+    };
+    let settings = await prisma.storeSettings.findFirst();
+    settings = settings
+      ? await prisma.storeSettings.update({ where: { id: settings.id }, data })
+      : await prisma.storeSettings.create({ data });
+
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'LIMITS_UPDATED',
+      entity: 'StoreSettings',
+      entityId: settings.id,
+      details: data,
+      ipAddress: req.ip,
+    });
+
+    res.json({ success: true, message: 'System limits saved.', data: settings });
   } catch (error) {
     next(error);
   }

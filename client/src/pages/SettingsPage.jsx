@@ -16,6 +16,9 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
     receiptFooter: '',
     receiptPaperWidth: '80mm',
     loyaltyPointsPerHundred: '1.00',
+    maxProducts: '0',
+    maxCustomers: '0',
+    maxLoyaltyRewards: '0',
   });
 
   // User Management State
@@ -52,6 +55,9 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
         receiptFooter: storeInfo.receiptFooter || '',
         receiptPaperWidth: storeInfo.receiptPaperWidth || '80mm',
         loyaltyPointsPerHundred: (storeInfo.loyaltyPointsPerHundred ?? 1).toString(),
+        maxProducts: String(storeInfo.maxProducts ?? 0),
+        maxCustomers: String(storeInfo.maxCustomers ?? 0),
+        maxLoyaltyRewards: String(storeInfo.maxLoyaltyRewards ?? 0),
       });
     }
   }, [storeInfo]);
@@ -193,6 +199,23 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
       if (onStoreUpdate) onStoreUpdate(res.data);
     } catch (err) {
       setErrorMessage(err.message || 'Unable to change system status');
+    }
+  };
+
+  const handleLimitsSubmit = async (event) => {
+    event.preventDefault();
+    setErrorMessage('');
+    setSuccessMessage('');
+    try {
+      const res = await api.updateLimits({
+        maxProducts: Number(formData.maxProducts),
+        maxCustomers: Number(formData.maxCustomers),
+        maxLoyaltyRewards: Number(formData.maxLoyaltyRewards),
+      });
+      setSuccessMessage('Admin limits updated successfully.');
+      onStoreUpdate?.(res.data);
+    } catch (err) {
+      setErrorMessage(err.message || 'Unable to update admin limits.');
     }
   };
 
@@ -390,6 +413,27 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
               </label>
             </div>
 
+            {isSuperAdmin && (
+              <div className="system-limits-card">
+                <div>
+                  <strong>Admin limits</strong>
+                  <p>Control how many catalog and loyalty records admins can create. Enter 0 for unlimited.</p>
+                </div>
+                <div className="system-limits-grid">
+                  <label className="field-label">Maximum products
+                    <input type="number" min="0" step="1" className="form-control" value={formData.maxProducts} onChange={(e) => setFormData({ ...formData, maxProducts: e.target.value })} />
+                  </label>
+                  <label className="field-label">Maximum customers
+                    <input type="number" min="0" step="1" className="form-control" value={formData.maxCustomers} onChange={(e) => setFormData({ ...formData, maxCustomers: e.target.value })} />
+                  </label>
+                  <label className="field-label">Maximum loyalty rewards
+                    <input type="number" min="0" step="1" className="form-control" value={formData.maxLoyaltyRewards} onChange={(e) => setFormData({ ...formData, maxLoyaltyRewards: e.target.value })} />
+                  </label>
+                </div>
+                <button type="button" className="btn btn-secondary" onClick={handleLimitsSubmit}>Save admin limits</button>
+              </div>
+            )}
+
             <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }}>
               Save Settings
             </button>
@@ -438,8 +482,10 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
                         <button
                           className="btn btn-secondary btn-sm"
                           onClick={() => handleToggleUser(u)}
+                          disabled={u.role === 'SUPERADMIN' && !isSuperAdmin}
+                          title={u.role === 'SUPERADMIN' && !isSuperAdmin ? 'Only a superadmin can manage this account.' : ''}
                         >
-                          {u.isActive ? 'Deactivate' : 'Activate'}
+                          {u.role === 'SUPERADMIN' && !isSuperAdmin ? 'Protected' : u.isActive ? 'Deactivate' : 'Activate'}
                         </button>
                       </td>
                     </tr>

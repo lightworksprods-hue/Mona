@@ -233,6 +233,14 @@ exports.updateUser = async (req, res, next) => {
     const { id } = req.params;
     const { fullName, email, role, isActive, password } = req.body;
 
+    const targetUser = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true, username: true } });
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+    if (targetUser.role === 'SUPERADMIN' && req.user.role !== 'SUPERADMIN') {
+      return res.status(403).json({ success: false, code: 'SUPERADMIN_PROTECTED', message: 'The superadmin account can only be managed by a superadmin.' });
+    }
+
     const dataToUpdate = {};
     if (fullName !== undefined) dataToUpdate.fullName = fullName;
     if (email !== undefined) dataToUpdate.email = email || null;

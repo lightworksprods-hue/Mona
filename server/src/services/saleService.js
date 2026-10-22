@@ -70,9 +70,17 @@ async function processCheckout({
   const storeSettings = await prisma.storeSettings.findFirst();
   const globalTaxRate = storeSettings ? Number(storeSettings.taxRate) : 0;
   const loyaltyRate = storeSettings ? Number(storeSettings.loyaltyPointsPerHundred || 0) : 0;
+  const maxCustomers = storeSettings ? Number(storeSettings.maxCustomers || 0) : 0;
   const normalizedCustomerPhone = customerPhone ? normalizePhone(customerPhone) : null;
   if (normalizedCustomerPhone && normalizedCustomerPhone.length < 7) {
     throw { status: 400, message: 'Customer phone number must contain at least 7 digits.' };
+  }
+
+  if (normalizedCustomerPhone && userRole !== 'SUPERADMIN' && maxCustomers > 0) {
+    const existingCustomer = await prisma.customer.findUnique({ where: { phone: normalizedCustomerPhone }, select: { id: true } });
+    if (!existingCustomer && await prisma.customer.count() >= maxCustomers) {
+      throw { status: 409, code: 'CUSTOMER_LIMIT_REACHED', message: `The customer limit is ${maxCustomers}. Ask the superadmin to increase it.` };
+    }
   }
 
   if (['GCASH', 'QRPH'].includes(paymentMethod) && !/^\d{4}$/.test(String(paymentReference || '').trim())) {

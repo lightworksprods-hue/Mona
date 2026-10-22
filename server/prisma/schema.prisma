@@ -310,6 +310,9 @@ model StoreSettings {
   receiptPaperWidth String @default("80mm")
   loyaltyPointsPerHundred Decimal @default(1.00) @db.Decimal(8, 2)
   systemActive Boolean @default(true)
+  maxProducts Int @default(0)
+  maxCustomers Int @default(0)
+  maxLoyaltyRewards Int @default(0)
   updatedAt      DateTime  @updatedAt
 
   @@map("store_settings")

@@ -149,6 +149,14 @@ exports.getProductById = async (req, res, next) => {
 // Create product (Admin only)
 exports.createProduct = async (req, res, next) => {
   try {
+    if (req.user.role !== 'SUPERADMIN') {
+      const settings = await prisma.storeSettings.findFirst({ select: { maxProducts: true } });
+      const maxProducts = Number(settings?.maxProducts || 0);
+      if (maxProducts > 0 && await prisma.product.count() >= maxProducts) {
+        return res.status(409).json({ success: false, code: 'PRODUCT_LIMIT_REACHED', message: `The product limit is ${maxProducts}. Ask the superadmin to increase it.` });
+      }
+    }
+
     const {
       name,
       sku,

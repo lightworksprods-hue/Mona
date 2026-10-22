@@ -6,6 +6,14 @@ function normalizePhone(phone) {
 
 exports.create = async (req, res, next) => {
   try {
+    if (req.user.role !== 'SUPERADMIN') {
+      const settings = await prisma.storeSettings.findFirst({ select: { maxCustomers: true } });
+      const maxCustomers = Number(settings?.maxCustomers || 0);
+      if (maxCustomers > 0 && await prisma.customer.count() >= maxCustomers) {
+        return res.status(409).json({ success: false, code: 'CUSTOMER_LIMIT_REACHED', message: `The customer limit is ${maxCustomers}. Ask the superadmin to increase it.` });
+      }
+    }
+
     const phone = normalizePhone(req.body.phone);
     const fullName = String(req.body.fullName || '').trim();
     if (!phone || phone.replace(/\D/g, '').length < 7) {
@@ -93,6 +101,14 @@ exports.listRewards = async (req, res, next) => {
 
 exports.createReward = async (req, res, next) => {
   try {
+    if (req.user.role !== 'SUPERADMIN') {
+      const settings = await prisma.storeSettings.findFirst({ select: { maxLoyaltyRewards: true } });
+      const maxLoyaltyRewards = Number(settings?.maxLoyaltyRewards || 0);
+      if (maxLoyaltyRewards > 0 && await prisma.loyaltyReward.count() >= maxLoyaltyRewards) {
+        return res.status(409).json({ success: false, code: 'LOYALTY_LIMIT_REACHED', message: `The loyalty reward limit is ${maxLoyaltyRewards}. Ask the superadmin to increase it.` });
+      }
+    }
+
     const productId = String(req.body.productId || '').trim();
     const pointsCost = Math.floor(Number(req.body.pointsCost));
     if (!productId || !Number.isFinite(pointsCost) || pointsCost < 1) {

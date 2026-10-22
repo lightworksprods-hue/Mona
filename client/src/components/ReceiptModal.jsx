@@ -17,7 +17,7 @@ function getRefundedQuantity(saleData, productId) {
   }, 0);
 }
 
-export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onNewSale }) {
+export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onNewSale, onAfterPrint }) {
   const receiptRef = useRef();
 
   if (!isOpen || !saleData) return null;
@@ -43,8 +43,12 @@ export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onN
       .receipt-row { display: flex; justify-content: space-between; gap: 8px; color: #111; font-size: 13px; }
       .receipt-row > span:last-child, .receipt-row > strong:last-child { text-align: right; }
       .receipt-footer { text-align: center; margin-top: 10px; font-size: 10px; line-height: 1.25; }
-    </style></head><body><div class="receipt-paper">${receiptHtml}</div><script>window.onload=()=>{window.print();window.onafterprint=()=>window.close()}</script></body></html>`);
+    </style></head><body><div class="receipt-paper">${receiptHtml}</div><script>window.onload=()=>window.print()</script></body></html>`);
     printWindow.document.close();
+    printWindow.onafterprint = () => {
+      printWindow.close();
+      onAfterPrint?.();
+    };
   };
 
   return (

@@ -541,7 +541,7 @@ body {
 .cash-history-table th, .cash-history-table td { padding: 13px 14px; border-top: 1px solid var(--border-color); text-align: left; white-space: nowrap; }
 .cash-history-table th { color: var(--secondary-text); font-size: 10px; letter-spacing: .05em; text-transform: uppercase; }
 @media (max-width: 900px) { .cash-summary-grid { grid-template-columns: repeat(2, 1fr); } .cash-action-grid { grid-template-columns: 1fr; } .cash-form-row { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { .inventory-product-filters { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .inventory-product-filters { grid-template-columns: 1fr; } .system-limits-grid { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .cash-drawer-header { flex-direction: column; } .cash-drawer-header-actions { width: 100%; justify-content: space-between; } .cash-summary-grid { grid-template-columns: 1fr; } .cash-movement-row { grid-template-columns: 1fr auto; } .cash-movement-row small { grid-column: 1; } }
 
 /* Final dark theme variables must win over all light-theme declarations. */
@@ -1158,6 +1158,10 @@ html[data-theme='dark'] .weight-modal .modal-footer {
   font-size: 12px;
   line-height: 1.45;
 }
+
+.system-limits-card { display: grid; gap: 14px; margin-top: 16px; padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--soft-pink-bg); }
+.system-limits-card p { margin: 5px 0 0; color: var(--secondary-text); font-size: 12px; line-height: 1.45; }
+.system-limits-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 
 .customer-loyalty-box {
   display: grid;

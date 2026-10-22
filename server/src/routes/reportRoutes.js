@@ -14,6 +14,7 @@ router.get('/reports', authenticate, requireRole('ADMIN'), reportController.getR
 router.get('/settings', authenticate, settingController.getSettings);
 router.put('/settings', authenticate, requireRole('ADMIN'), settingController.updateSettings);
 router.put('/system/status', authenticate, requireRole('SUPERADMIN'), settingController.updateSystemStatus);
+router.put('/settings/limits', authenticate, requireRole('SUPERADMIN'), settingController.updateLimits);
 
 // Audit logs (Admin only)
 router.get('/audit-logs', authenticate, requireRole('ADMIN'), settingController.getAuditLogs);
