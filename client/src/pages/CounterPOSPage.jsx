@@ -814,17 +814,6 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
           <div className="payment-scroll-area">
           <div>
             <label className="field-label">Payment Method</label>
-            <div className={`pos-drawer-status ${cashDrawerOpen === false ? 'is-closed' : 'is-open'}`}>
-              <span className="pos-drawer-status-dot" aria-hidden="true" />
-              <span>
-                {cashDrawerOpen === false ? 'Cash drawer is closed' : 'Cash drawer ready'}
-                {cashDrawerOpen === false && (
-                  <button type="button" className="pos-drawer-link" onClick={onOpenCashDrawer}>
-                    Open drawer
-                  </button>
-                )}
-              </span>
-            </div>
             <div className="payment-method-selector">
               {['CASH', 'GCASH', 'QRPH'].map((method) => (
                 <button

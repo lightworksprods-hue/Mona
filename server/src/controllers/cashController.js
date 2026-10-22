@@ -1,12 +1,16 @@
 const prisma = require('../config/db');
-const { openCashDrawer } = require('../services/cashDrawerHardwareService');
 
 const money = (value) => Number(value || 0);
 
 exports.openHardware = async (req, res, next) => {
   try {
-    const result = await openCashDrawer();
-    res.json({ success: true, message: 'Cash drawer opened.', data: result });
+    if (!process.env.HARDWARE_BRIDGE_TOKEN) {
+      return res.status(503).json({ success: false, code: 'HARDWARE_BRIDGE_NOT_CONFIGURED', message: 'The cash drawer bridge is not configured.' });
+    }
+    const command = await prisma.hardwareCommand.create({
+      data: { type: 'OPEN_DRAWER', requestedBy: req.user.id },
+    });
+    res.status(202).json({ success: true, message: 'Cash drawer command sent to the store computer.', data: { commandId: command.id } });
   } catch (error) {
     next(error);
   }

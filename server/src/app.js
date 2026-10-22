@@ -10,6 +10,7 @@ const inventoryRoutes = require('./routes/inventoryRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const cashRoutes = require('./routes/cashRoutes');
 const customerRoutes = require('./routes/customerRoutes');
+const hardwareRoutes = require('./routes/hardwareRoutes');
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use('/api/sales', saleRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/cash', cashRoutes);
 app.use('/api/customers', customerRoutes);
+app.use('/api/hardware', hardwareRoutes);
 app.use('/api', reportRoutes);
 
 // 404 Handler

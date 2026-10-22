@@ -10,7 +10,9 @@ function friendlyCashDrawerError(error, fallback = 'Something went wrong. Please
     return 'The cash drawer could not open. Check that the POS80 printer is turned on, connected, and ready.';
   }
   if (error.status === 503) {
-    return 'Cash drawer hardware is available only on the Windows POS computer.';
+    return error.code === 'HARDWARE_BRIDGE_NOT_CONFIGURED'
+      ? 'The store hardware bridge is not configured yet.'
+      : 'Cash drawer hardware is available only through the store Windows POS computer.';
   }
   if (error.name === 'TypeError' || /network|fetch failed|failed to fetch/i.test(error.message || '')) {
     return 'The POS could not reach the printer service. Make sure the POS server is running on this computer.';
@@ -107,7 +109,7 @@ export default function CashDrawerPage({ onSessionChange }) {
     setMessage({ type: '', text: '' });
     try {
       await api.openCashDrawer();
-      setMessage({ type: 'success', text: 'Cash drawer opened.' });
+      setMessage({ type: 'success', text: 'Open command sent to the store POS computer.' });
     } catch (error) {
       setMessage({ type: 'error', text: friendlyCashDrawerError(error, 'Unable to open the cash drawer.') });
     } finally {

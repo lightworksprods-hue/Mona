@@ -368,3 +368,17 @@ model CashMovement {
   @@index([sessionId, createdAt])
   @@map("cash_movements")
 }
+
+model HardwareCommand {
+  id          String    @id @default(uuid())
+  type        String
+  status      String    @default("PENDING")
+  requestedBy String?
+  requestedAt DateTime  @default(now())
+  claimedAt   DateTime?
+  completedAt DateTime?
+  result      String?
+
+  @@index([status, requestedAt])
+  @@map("hardware_commands")
+}

@@ -1,0 +1,10 @@
+{
+  "name": "mona-pos-hardware-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Windows bridge for the Mona POS cash drawer",
+  "main": "bridge.js",
+  "scripts": {
+    "start": "node bridge.js"
+  }
+}

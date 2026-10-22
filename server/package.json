@@ -18,7 +18,13 @@
     "create:superadmin": "node scripts/createSuperadmin.js",
     "test": "node test/api.test.js"
   },
-  "keywords": ["counter-pos", "point-of-sale", "express", "prisma", "supabase"],
+  "keywords": [
+    "counter-pos",
+    "point-of-sale",
+    "express",
+    "prisma",
+    "supabase"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -31,6 +37,7 @@
     "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
+    "@types/node": "^26.6.5",
     "nodemon": "^3.1.14",
     "prisma": "^6.4.1"
   }
