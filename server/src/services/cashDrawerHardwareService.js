@@ -9,7 +9,7 @@ async function openCashDrawer() {
     throw { status: 503, message: 'Cash drawer hardware control is available on the Windows POS computer only.' };
   }
 
-  const printerName = String(process.env.CASH_DRAWER_PRINTER_NAME || 'XP-T80A').trim();
+  const printerName = String(process.env.CASH_DRAWER_PRINTER_NAME || 'POS80').trim();
   if (!printerName) {
     throw { status: 503, message: 'Set CASH_DRAWER_PRINTER_NAME to the Windows printer name.' };
   }

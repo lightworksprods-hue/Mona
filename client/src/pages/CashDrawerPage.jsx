@@ -7,7 +7,7 @@ const numberValue = (value) => Number(value || 0);
 function friendlyCashDrawerError(error, fallback = 'Something went wrong. Please try again.') {
   if (!error) return fallback;
   if (error.code === 'CASH_DRAWER_HARDWARE_ERROR' || error.status === 502) {
-    return 'The cash drawer could not open. Check that the XP-T80A printer is turned on, connected, and ready.';
+    return 'The cash drawer could not open. Check that the POS80 printer is turned on, connected, and ready.';
   }
   if (error.status === 503) {
     return 'Cash drawer hardware is available only on the Windows POS computer.';
