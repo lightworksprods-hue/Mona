@@ -17,6 +17,7 @@ export default function TransactionsPage({ storeInfo }) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalSales, setTotalSales] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -58,14 +59,11 @@ export default function TransactionsPage({ storeInfo }) {
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [search, paymentFilter, statusFilter, startDate, endDate]);
+  }, [search, paymentFilter, statusFilter, startDate, endDate, currentPage]);
 
-  const totalPages = Math.max(1, Math.ceil(sales.length / TRANSACTIONS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(totalSales / TRANSACTIONS_PER_PAGE));
   const visiblePage = Math.min(currentPage, totalPages);
-  const paginatedSales = sales.slice(
-    (visiblePage - 1) * TRANSACTIONS_PER_PAGE,
-    visiblePage * TRANSACTIONS_PER_PAGE,
-  );
+  const paginatedSales = sales;
 
   const loadSales = async () => {
     setIsLoading(true);
@@ -76,8 +74,11 @@ export default function TransactionsPage({ storeInfo }) {
         status: statusFilter,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
+        page: currentPage,
+        limit: TRANSACTIONS_PER_PAGE,
       });
       setSales(res.data?.sales || []);
+      setTotalSales(Number(res.data?.total || 0));
     } catch (err) {
       setErrorMessage(err.message || 'Error fetching transactions');
     } finally {
@@ -368,10 +369,10 @@ export default function TransactionsPage({ storeInfo }) {
             </tbody>
           </table>
         </div>
-        {sales.length > 0 && (
+        {totalSales > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', borderTop: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
             <span style={{ color: 'var(--secondary-text)', fontSize: '13px' }}>
-              Showing {(visiblePage - 1) * TRANSACTIONS_PER_PAGE + 1}-{Math.min(visiblePage * TRANSACTIONS_PER_PAGE, sales.length)} of {sales.length} transactions
+              Showing {(visiblePage - 1) * TRANSACTIONS_PER_PAGE + 1}-{Math.min(visiblePage * TRANSACTIONS_PER_PAGE, totalSales)} of {totalSales} transactions
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
