@@ -27,6 +27,13 @@ function barcodePattern(value) {
   return `${pattern}101`;
 }
 
+function barcodeForCsv(value) {
+  // Barcodes are identifiers, not decimal values. Normalize legacy numeric
+  // values such as 4800010075012.0 before writing the CSV cell. Remove a
+  // leading apostrophe if it came from an Excel-exported/imported file.
+  return String(value ?? '').replace(/^'+/, '').replace(/\.0+$/, '');
+}
+
 function barcodeSvg(value) {
   const pattern = barcodePattern(value);
   if (!pattern) return `<div class="barcode-fallback">${String(value || '')}</div>`;
@@ -265,7 +272,7 @@ export default function ProductsPage() {
         importedProducts.push({
           name: record.name,
           sku: record.sku,
-          barcode: record.barcode,
+          barcode: record.barcode.replace(/^'+/, ''),
           categoryId: category?.id || '',
           description: record.description || '',
           costPrice,
@@ -325,7 +332,6 @@ export default function ProductsPage() {
 
       downloadCsv(`products-${date}.csv`, [{
         headers: [
-          'id',
           'name',
           'sku',
           'barcode',
@@ -343,10 +349,9 @@ export default function ProductsPage() {
           'updatedAt',
         ],
         rows: allProducts.map((product) => [
-          product.id,
           product.name,
           product.sku,
-          product.barcode,
+          barcodeForCsv(product.barcode),
           product.category?.name || '',
           product.description || '',
           product.costPrice,

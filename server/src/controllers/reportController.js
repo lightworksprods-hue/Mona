@@ -9,38 +9,34 @@ exports.getDashboardStats = async (req, res, next) => {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    // Sales today
-    const todaySales = await prisma.sale.findMany({
-      where: {
-        createdAt: {
-          gte: todayStart,
-          lte: todayEnd,
-        },
-        status: { in: ['COMPLETED', 'PARTIALLY_REFUNDED'] },
-      },
-      select: { totalAmount: true, items: { select: { quantity: true, lineTotal: true, costPrice: true } } },
-    });
+    const saleWhere = {
+      createdAt: { gte: todayStart, lte: todayEnd },
+      status: { in: ['COMPLETED', 'PARTIALLY_REFUNDED'] },
+    };
+    // Keep dashboard totals in the database instead of loading every sale and
+    // line item into the Node.js process.
+    const [salesSummary, itemSummary, profitSummary, refundSummary] = await Promise.all([
+      prisma.sale.aggregate({ where: saleWhere, _sum: { totalAmount: true }, _count: { _all: true } }),
+      prisma.saleItem.aggregate({ where: { sale: saleWhere }, _sum: { quantity: true } }),
+      prisma.$queryRaw`
+        SELECT COALESCE(SUM(si."lineTotal" - (si."costPrice" * si."quantity")), 0) AS "profit"
+        FROM "sale_items" si
+        INNER JOIN "sales" s ON s."id" = si."saleId"
+        WHERE s."createdAt" >= ${todayStart}
+          AND s."createdAt" <= ${todayEnd}
+          AND s."status" IN ('COMPLETED', 'PARTIALLY_REFUNDED')
+      `,
+      prisma.refund.aggregate({ where: { createdAt: { gte: todayStart, lte: todayEnd } }, _sum: { amount: true } }),
+    ]);
 
-    let grossTodaySalesTotal = 0;
-    let todayItemsSold = 0;
-    let todayEstimatedProfit = 0;
-    todaySales.forEach((s) => {
-      grossTodaySalesTotal += Number(s.totalAmount);
-      s.items.forEach((item) => {
-        todayItemsSold += Number(item.quantity);
-        todayEstimatedProfit += Number(item.lineTotal) - (Number(item.costPrice) * Number(item.quantity));
-      });
-    });
-
-    const todayRefunds = await prisma.refund.findMany({
-      where: { createdAt: { gte: todayStart, lte: todayEnd } },
-      select: { amount: true },
-    });
-    const todayRefundedTotal = todayRefunds.reduce((sum, refund) => sum + Number(refund.amount), 0);
+    const grossTodaySalesTotal = Number(salesSummary._sum.totalAmount || 0);
+    const todayItemsSold = Number(itemSummary._sum.quantity || 0);
+    let todayEstimatedProfit = Number(profitSummary[0]?.profit || 0);
+    const todayRefundedTotal = Number(refundSummary._sum.amount || 0);
     const todaySalesTotal = Math.max(0, grossTodaySalesTotal - todayRefundedTotal);
     todayEstimatedProfit = Math.max(0, todayEstimatedProfit - todayRefundedTotal);
 
-    const transactionCount = todaySales.length;
+    const transactionCount = salesSummary._count._all;
     const averageTransactionValue = transactionCount > 0 ? todaySalesTotal / transactionCount : 0;
 
     // Low stock items count

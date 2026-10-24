@@ -17,23 +17,22 @@ exports.openHardware = async (req, res, next) => {
 };
 
 async function calculateSession(session) {
-  const sales = await prisma.sale.findMany({
-    where: {
-      cashierId: session.cashierId,
-      paymentMethod: 'CASH',
-      createdAt: { gte: session.openedAt },
-      status: { in: ['COMPLETED', 'PARTIALLY_REFUNDED'] },
-    },
-    select: { id: true, totalAmount: true },
+  const saleWhere = {
+    cashierId: session.cashierId,
+    paymentMethod: 'CASH',
+    createdAt: { gte: session.openedAt },
+    status: { in: ['COMPLETED', 'PARTIALLY_REFUNDED'] },
+  };
+  const salesSummary = await prisma.sale.aggregate({
+    where: saleWhere,
+    _sum: { totalAmount: true },
+    _count: { _all: true },
   });
 
-  const saleIds = sales.map((sale) => sale.id);
-  const refunds = saleIds.length
-    ? await prisma.refund.findMany({
-        where: { saleId: { in: saleIds }, createdAt: { gte: session.openedAt } },
-        select: { amount: true },
-      })
-    : [];
+  const refundSummary = await prisma.refund.aggregate({
+    where: { createdAt: { gte: session.openedAt }, sale: saleWhere },
+    _sum: { amount: true },
+  });
 
   const movements = await prisma.cashMovement.findMany({
     where: { sessionId: session.id },
@@ -41,8 +40,8 @@ async function calculateSession(session) {
     include: { user: { select: { fullName: true, username: true } } },
   });
 
-  const cashSales = sales.reduce((sum, sale) => sum + money(sale.totalAmount), 0);
-  const refunded = refunds.reduce((sum, refund) => sum + money(refund.amount), 0);
+  const cashSales = money(salesSummary._sum.totalAmount);
+  const refunded = money(refundSummary._sum.amount);
   const withdrawals = movements
     .filter((movement) => movement.type === 'WITHDRAWAL')
     .reduce((sum, movement) => sum + money(movement.amount), 0);

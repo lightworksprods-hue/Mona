@@ -121,9 +121,8 @@ model Product {
   inventoryMoves InventoryMovement[]
   loyaltyReward  LoyaltyReward?
 
-  @@index([barcode])
-  @@index([sku])
   @@index([name])
+  @@index([categoryId, isActive])
   @@map("products")
 }
 
@@ -140,7 +139,6 @@ model Customer {
   loyaltyTransactions LoyaltyTransaction[]
   loyaltyRedemptions  LoyaltyRedemption[]
 
-  @@index([phone])
   @@map("customers")
 }
 
@@ -219,9 +217,9 @@ model Sale {
   inventoryMoves     InventoryMovement[]
   loyaltyTransactions LoyaltyTransaction[]
 
-  @@index([transactionNumber])
   @@index([createdAt])
   @@index([cashierId])
+  @@index([createdAt, status])
   @@map("sales")
 }
 
@@ -295,7 +293,7 @@ model Refund {
   createdAt      DateTime      @default(now())
 
   @@index([saleId])
-  @@index([refundNumber])
+  @@index([createdAt])
   @@map("refunds")
 }
 

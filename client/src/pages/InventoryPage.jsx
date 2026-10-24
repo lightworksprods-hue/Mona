@@ -4,6 +4,8 @@ import AlertToast from '../components/AlertToast';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 import { downloadCsv, printReport } from '../utils/reportExport';
 
+const LOW_STOCK_ITEMS_PER_PAGE = 10;
+
 export default function InventoryPage() {
   const [summary, setSummary] = useState(null);
   const [movements, setMovements] = useState([]);
@@ -14,6 +16,8 @@ export default function InventoryPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [productSearch, setProductSearch] = useState('');
   const [productCategory, setProductCategory] = useState('ALL');
+  const [lowStockPage, setLowStockPage] = useState(1);
+  const [lowStockFilter, setLowStockFilter] = useState('ALL');
 
   // Stock Adjustment Form
   const [adjustmentData, setAdjustmentData] = useState({
@@ -32,6 +36,7 @@ export default function InventoryPage() {
     try {
       const res = await api.getInventorySummary();
       setSummary(res.data);
+      setLowStockPage(1);
     } catch (err) {
       console.error(err);
     }
@@ -94,6 +99,15 @@ export default function InventoryPage() {
       || (product.category?.name || 'Uncategorized') === productCategory;
     return matchesSearch && matchesCategory;
   });
+  const lowStockItems = summary?.lowStockItems || [];
+  const filteredLowStockItems = lowStockItems.filter((item) => (
+    lowStockFilter === 'ALL' || item.status === lowStockFilter
+  ));
+  const lowStockTotalPages = Math.max(1, Math.ceil(filteredLowStockItems.length / LOW_STOCK_ITEMS_PER_PAGE));
+  const visibleLowStockItems = filteredLowStockItems.slice(
+    (lowStockPage - 1) * LOW_STOCK_ITEMS_PER_PAGE,
+    lowStockPage * LOW_STOCK_ITEMS_PER_PAGE,
+  );
 
   const exportInventoryCsv = () => {
     if (!summary) return;
@@ -186,6 +200,20 @@ export default function InventoryPage() {
         <div className="pos-panel">
           <div className="pos-panel-header">
             <span className="pos-panel-title">Low & Depleted Stock Items</span>
+            <select
+              className="form-control"
+              value={lowStockFilter}
+              onChange={(event) => {
+                setLowStockFilter(event.target.value);
+                setLowStockPage(1);
+              }}
+              aria-label="Filter low stock alerts"
+              style={{ width: 'auto', minWidth: '150px' }}
+            >
+              <option value="ALL">All alerts</option>
+              <option value="OUT_OF_STOCK">Out of stock</option>
+              <option value="LOW_STOCK">Low stock</option>
+            </select>
           </div>
           <div className="table-container">
             <table className="pos-table">
@@ -200,14 +228,16 @@ export default function InventoryPage() {
                 </tr>
               </thead>
               <tbody>
-                {!summary || summary.lowStockItems.length === 0 ? (
+                {filteredLowStockItems.length === 0 ? (
                   <tr>
                     <td colSpan="6" style={{ textAlign: 'center', padding: '24px', color: 'var(--success)' }}>
-                      All active products are adequately stocked above minimum levels.
+                      {lowStockItems.length === 0
+                        ? 'All active products are adequately stocked above minimum levels.'
+                        : 'No alerts match the selected filter.'}
                     </td>
                   </tr>
                 ) : (
-                  summary.lowStockItems.map((p) => (
+                  visibleLowStockItems.map((p) => (
                     <tr key={p.id}>
                       <td><strong>{p.name}</strong></td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{p.sku}</td>
@@ -233,6 +263,34 @@ export default function InventoryPage() {
               </tbody>
             </table>
           </div>
+          {filteredLowStockItems.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', borderTop: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
+              <span style={{ color: 'var(--secondary-text)', fontSize: '13px' }}>
+                Showing {(lowStockPage - 1) * LOW_STOCK_ITEMS_PER_PAGE + 1}-{Math.min(lowStockPage * LOW_STOCK_ITEMS_PER_PAGE, filteredLowStockItems.length)} of {filteredLowStockItems.length} alerts
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setLowStockPage((page) => Math.max(1, page - 1))}
+                  disabled={lowStockPage === 1}
+                >
+                  Previous
+                </button>
+                <span aria-live="polite" style={{ fontSize: '13px', minWidth: '76px', textAlign: 'center' }}>
+                  Page {lowStockPage} of {lowStockTotalPages}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setLowStockPage((page) => Math.min(lowStockTotalPages, page + 1))}
+                  disabled={lowStockPage === lowStockTotalPages}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

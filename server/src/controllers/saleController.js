@@ -73,13 +73,20 @@ exports.getSales = async (req, res, next) => {
     const [sales, totalCount, amountSummary, statusSummary, paymentSummary] = await Promise.all([
       prisma.sale.findMany({
         where,
-        include: {
+        select: {
+          id: true,
+          transactionNumber: true,
+          totalAmount: true,
+          amountTendered: true,
+          changeDue: true,
+          paymentMethod: true,
+          paymentReference: true,
+          status: true,
+          createdAt: true,
           cashier: {
             select: { id: true, fullName: true, username: true },
           },
-          items: true,
-          payments: true,
-          refunds: true,
+          _count: { select: { items: true, refunds: true } },
         },
         orderBy: { createdAt: 'desc' },
         take,
