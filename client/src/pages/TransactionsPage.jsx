@@ -7,6 +7,10 @@ import { useAuth } from '../context/AuthContext';
 import { downloadCsv, printReport } from '../utils/reportExport';
 
 const TRANSACTIONS_PER_PAGE = 10;
+const getTodayInput = () => {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+};
 
 export default function TransactionsPage({ storeInfo }) {
   const { isAdmin } = useAuth();
@@ -14,11 +18,13 @@ export default function TransactionsPage({ storeInfo }) {
   const [search, setSearch] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(getTodayInput);
+  const [endDate, setEndDate] = useState(getTodayInput);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalSales, setTotalSales] = useState(0);
+  const [saleSummary, setSaleSummary] = useState({ totalAmount: 0, completed: 0, refunded: 0, paymentMethods: [] });
   const [isLoading, setIsLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -64,6 +70,13 @@ export default function TransactionsPage({ storeInfo }) {
   const totalPages = Math.max(1, Math.ceil(totalSales / TRANSACTIONS_PER_PAGE));
   const visiblePage = Math.min(currentPage, totalPages);
   const paginatedSales = sales;
+  const pageSalesTotal = Number(saleSummary.totalAmount || 0);
+  const completedCount = Number(saleSummary.completed || 0);
+  const refundedCount = Number(saleSummary.refunded || 0);
+  const paymentMix = saleSummary.paymentMethods || [];
+  const electronicSales = paymentMix.filter((item) => ['GCASH', 'QRPH'].includes(item.method));
+  const maxPaymentCount = Math.max(...paymentMix.map((item) => item.count), 1);
+  const summaryScopeLabel = startDate && endDate && startDate === endDate ? 'selected day' : 'selected period';
 
   const loadSales = async () => {
     setIsLoading(true);
@@ -79,6 +92,7 @@ export default function TransactionsPage({ storeInfo }) {
       });
       setSales(res.data?.sales || []);
       setTotalSales(Number(res.data?.total || 0));
+      setSaleSummary(res.data?.summary || { totalAmount: 0, completed: 0, refunded: 0, paymentMethods: [] });
     } catch (err) {
       setErrorMessage(err.message || 'Error fetching transactions');
     } finally {
@@ -104,20 +118,48 @@ export default function TransactionsPage({ storeInfo }) {
     }
   };
 
-  const exportTransactionsCsv = () => {
-    downloadCsv(`mona-transactions-${new Date().toISOString().slice(0, 10)}.csv`, [{
-      title: 'Sales Transactions',
-      headers: ['Transaction', 'Date', 'Cashier', 'Items', 'Payment method', 'Total', 'Status'],
-      rows: sales.map((sale) => [
-        sale.transactionNumber,
-        formatDateTime(sale.createdAt),
-        sale.cashier?.fullName || sale.cashier?.username || '',
-        sale.items ? sale.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0,
-        sale.paymentMethod,
-        sale.totalAmount,
-        sale.status,
-      ]),
-    }]);
+  const exportTransactionsCsv = async () => {
+    setIsExporting(true);
+    try {
+      const params = {
+        search,
+        paymentMethod: paymentFilter,
+        status: statusFilter,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        page: 1,
+        limit: 100,
+      };
+      const firstPage = await api.getSales(params);
+      const total = Number(firstPage.data?.total || 0);
+      const pageCount = Math.ceil(total / 100);
+      const remainingPages = await Promise.all(
+        Array.from({ length: Math.max(0, pageCount - 1) }, (_, index) => api.getSales({ ...params, page: index + 2 }))
+      );
+      const allSales = [
+        ...(firstPage.data?.sales || []),
+        ...remainingPages.flatMap((response) => response.data?.sales || []),
+      ];
+
+      downloadCsv(`mona-transactions-${startDate || new Date().toISOString().slice(0, 10)}.csv`, [{
+        title: 'Sales Transactions',
+        headers: ['Transaction', 'Date', 'Cashier', 'Items', 'Payment method', 'Reference ID', 'Total', 'Status'],
+        rows: allSales.map((sale) => [
+          sale.transactionNumber,
+          formatDateTime(sale.createdAt),
+          sale.cashier?.fullName || sale.cashier?.username || '',
+          sale.items ? sale.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0,
+          sale.paymentMethod,
+          sale.paymentReference || sale.payments?.[0]?.referenceNo || '',
+          sale.totalAmount,
+          sale.status,
+        ]),
+      }]);
+    } catch (err) {
+      setErrorMessage(err.message || 'Unable to export transactions');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const printTransactionsReport = () => {
@@ -199,7 +241,7 @@ export default function TransactionsPage({ storeInfo }) {
         <h1 className="pos-panel-title" style={{ fontSize: '18px' }}>Sales & Transaction History</h1>
         <div className="report-toolbar-actions">
           {isAdmin && <>
-            <button className="btn btn-secondary btn-sm" onClick={exportTransactionsCsv}>Export CSV</button>
+            <button className="btn btn-secondary btn-sm" onClick={exportTransactionsCsv} disabled={isExporting}>{isExporting ? 'Exporting…' : 'Export CSV'}</button>
             <button className="btn btn-primary btn-sm" onClick={printTransactionsReport}>Print / PDF</button>
             <span className="export-toolbar-divider" />
           </>}
@@ -274,8 +316,20 @@ export default function TransactionsPage({ storeInfo }) {
       {errorMessage && <AlertToast type="error" message={errorMessage} onClose={() => setErrorMessage('')} />}
       {successMessage && <AlertToast message={successMessage} onClose={() => setSuccessMessage('')} />}
 
+      <div className="sales-overview-grid">
+        <div className="sales-overview-card sales-overview-primary"><span>{summaryScopeLabel} total</span><strong>{formatCurrency(pageSalesTotal)}</strong><small>{totalSales} transactions in the {summaryScopeLabel}</small></div>
+        <div className="sales-overview-card"><span>Completed transactions</span><strong>{completedCount}</strong><small>{totalSales ? `${Math.round((completedCount / totalSales) * 100)}% of ${summaryScopeLabel}` : 'No transactions'}</small></div>
+        <div className="sales-overview-card"><span>Refunded / partial</span><strong>{refundedCount}</strong><small>Review before closing drawer</small></div>
+        <div className="sales-overview-card"><span>Digital payments</span><strong>{electronicSales.reduce((sum, item) => sum + item.count, 0)}</strong><small>GCash / QRPH in {summaryScopeLabel}</small></div>
+      </div>
+
+      <div className="sales-insight-strip">
+        <div><span className="eyebrow">PAYMENT METHODS · {summaryScopeLabel.toUpperCase()}</span><div className="sales-mix-bars">{paymentMix.length === 0 ? <span className="sales-insight-empty">No payment activity in the {summaryScopeLabel}.</span> : paymentMix.map((item) => <div className="sales-mix-item" key={item.method}><div><strong>{item.method}</strong><span>{item.count} txn{item.count === 1 ? '' : 's'} · {formatCurrency(item.amount)}</span></div><div className="report-progress-track"><span style={{ width: `${(item.count / maxPaymentCount) * 100}%` }} /></div></div>)}</div></div>
+      </div>
+
       {/* Transactions Table */}
-      <div className="pos-panel">
+      <div className="pos-panel sales-table-panel">
+        <div className="sales-table-heading"><div><span className="eyebrow">TRANSACTION LEDGER</span><h2>Recent sales activity</h2></div><span className="sales-table-count">{isLoading ? 'Updating…' : `${totalSales} total records`}</span></div>
         <div className="table-container">
           <table className="pos-table" id="transactions-table">
             <thead>
@@ -285,6 +339,7 @@ export default function TransactionsPage({ storeInfo }) {
                 <th>Cashier</th>
                 <th style={{ textAlign: 'center' }}>Items</th>
                 <th style={{ textAlign: 'center' }}>Method</th>
+                <th>Reference ID</th>
                 <th style={{ textAlign: 'right' }}>Total</th>
                 <th style={{ textAlign: 'center' }}>Status</th>
                 <th style={{ textAlign: 'center' }}>Actions</th>
@@ -293,7 +348,7 @@ export default function TransactionsPage({ storeInfo }) {
             <tbody>
               {sales.length === 0 ? (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '30px' }}>
+                  <td colSpan="9" style={{ textAlign: 'center', padding: '30px' }}>
                     {isLoading ? 'Loading transactions...' : 'No transactions found.'}
                   </td>
                 </tr>
@@ -312,6 +367,11 @@ export default function TransactionsPage({ storeInfo }) {
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <span className="badge-tag">{sale.paymentMethod}</span>
+                    </td>
+                    <td className="sales-reference-cell">
+                      {['GCASH', 'QRPH'].includes(sale.paymentMethod)
+                        ? (sale.paymentReference || sale.payments?.[0]?.referenceNo || '—')
+                        : <span className="sales-no-reference">—</span>}
                     </td>
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
                       {formatCurrency(sale.totalAmount)}
@@ -424,6 +484,12 @@ export default function TransactionsPage({ storeInfo }) {
                 <span><strong>Cashier:</strong> {orderDetails.cashier?.fullName || orderDetails.cashier?.username || '—'}</span>
                 <span><strong>Status:</strong> {orderDetails.status}</span>
                 <span><strong>Payment:</strong> {orderDetails.paymentMethod}</span>
+                {['GCASH', 'QRPH'].includes(orderDetails.paymentMethod) && (
+                  <span>
+                    <strong>Reference ID:</strong>{' '}
+                    {orderDetails.paymentReference || orderDetails.payments?.[0]?.referenceNo || '—'}
+                  </span>
+                )}
               </div>
 
               <div className="table-container order-details-table-wrap">

@@ -6,32 +6,22 @@ import { downloadCsv, printReport } from '../utils/reportExport';
 
 export default function ReportsPage() {
   const [period, setPeriod] = useState('daily'); // 'daily' | 'weekly' | 'monthly'
-  const [dashboardStats, setDashboardStats] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  });
   const [reportData, setReportData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    loadDashboard();
-  }, []);
-
-  useEffect(() => {
     loadReport();
-  }, [period]);
-
-  const loadDashboard = async () => {
-    try {
-      const res = await api.getDashboardStats();
-      setDashboardStats(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  }, [period, selectedDate]);
 
   const loadReport = async () => {
     setIsLoading(true);
     try {
-      const res = await api.getReports({ period });
+      const res = await api.getReports({ period, startDate: selectedDate, endDate: selectedDate });
       setReportData(res.data);
     } catch (err) {
       setErrorMessage(err.message || 'Error generating report');
@@ -40,7 +30,21 @@ export default function ReportsPage() {
     }
   };
 
-  const reportLabel = period === 'daily' ? 'Today' : period === 'weekly' ? 'Past 7 Days' : 'Past 30 Days';
+  const reportLabel = selectedDate || (period === 'daily' ? 'Today' : period === 'weekly' ? 'Past 7 Days' : 'Past 30 Days');
+  const formatPeakHour = (hour) => {
+    const numericHour = Number(hour);
+    const suffix = numericHour >= 12 ? 'PM' : 'AM';
+    const displayHour = numericHour % 12 || 12;
+    return `${displayHour}:00 ${suffix}`;
+  };
+  const summary = reportData?.summary || {};
+  const paymentEntries = Object.entries(reportData?.paymentBreakdown || {}).filter(([, amount]) => Number(amount) > 0);
+  const paymentTotal = paymentEntries.reduce((total, [, amount]) => total + Number(amount), 0);
+  const bestSellers = reportData?.bestSellers || [];
+  const maxProductQuantity = Math.max(...bestSellers.map((item) => Number(item.quantity || 0)), 1);
+  const averageBasket = Number(summary.transactionCount || 0) > 0
+    ? Number(summary.netSales || 0) / Number(summary.transactionCount)
+    : 0;
 
   const exportSalesCsv = () => {
     if (!reportData) return;
@@ -92,24 +96,10 @@ export default function ReportsPage() {
       <div className="pos-panel-header" style={{ borderRadius: 'var(--radius-sm)' }}>
         <h1 className="pos-panel-title" style={{ fontSize: '18px' }}>Store Performance & Reports</h1>
         <div className="report-toolbar-actions">
-          <button
-            className={`btn ${period === 'daily' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-            onClick={() => setPeriod('daily')}
-          >
-            Today
-          </button>
-          <button
-            className={`btn ${period === 'weekly' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-            onClick={() => setPeriod('weekly')}
-          >
-            Past 7 Days
-          </button>
-          <button
-            className={`btn ${period === 'monthly' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-            onClick={() => setPeriod('monthly')}
-          >
-            Past 30 Days
-          </button>
+          <label className="report-date-picker">
+            <span>Report date</span>
+            <input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} />
+          </label>
           <span className="export-toolbar-divider" />
           <button className="btn btn-secondary btn-sm" onClick={exportSalesCsv} disabled={!reportData}>Export CSV</button>
           <button className="btn btn-primary btn-sm" onClick={printSalesReport} disabled={!reportData}>Print / PDF</button>
@@ -119,31 +109,28 @@ export default function ReportsPage() {
       {errorMessage && <AlertToast type="error" message={errorMessage} onClose={() => setErrorMessage('')} />}
 
       {/* DASHBOARD REAL-TIME KPI CARDS */}
-      {dashboardStats && (
-        <div className="dashboard-grid">
-          <div className="metric-card">
-            <div className="metric-card-label">Today's Total Sales</div>
-            <div className="metric-card-value">{formatCurrency(dashboardStats.today?.salesTotal)}</div>
+      {reportData && (
+        <>
+          <div className="report-kpi-grid">
+            <div className="report-kpi-card report-kpi-sales"><span>Net sales</span><strong>{formatCurrency(summary.netSales)}</strong><small>After refunds</small></div>
+            <div className="report-kpi-card"><span>Transactions</span><strong>{summary.transactionCount || 0}</strong><small>Completed sales</small></div>
+            <div className="report-kpi-card"><span>Items sold</span><strong>{formatQuantity(summary.totalItemsSold)}</strong><small>{formatCurrency(summary.totalTax)} tax collected</small></div>
+            <div className="report-kpi-card"><span>Average basket</span><strong>{formatCurrency(averageBasket)}</strong><small>Net sales per transaction</small></div>
+            <div className="report-kpi-card report-kpi-profit"><span>Estimated profit</span><strong>{formatCurrency(summary.estimatedProfit)}</strong><small>Based on recorded cost</small></div>
           </div>
-          <div className="metric-card">
-            <div className="metric-card-label">Transactions Processed</div>
-            <div className="metric-card-value">{dashboardStats.today?.transactionCount}</div>
-          </div>
-          <div className="metric-card">
-            <div className="metric-card-label">Total Units Sold Today</div>
-            <div className="metric-card-value">{formatQuantity(dashboardStats.today?.itemsSold)} pcs</div>
-          </div>
-          <div className="metric-card">
-            <div className="metric-card-label">Average Basket Size</div>
-            <div className="metric-card-value">
-              {formatCurrency(dashboardStats.today?.averageTransactionValue)}
+
+          <div className="report-chart-grid">
+            <div className="pos-panel report-chart-panel">
+              <div className="report-section-heading"><div><span className="eyebrow">CHANNEL MIX</span><h3>Sales by payment method</h3></div><span className="report-heading-total">{formatCurrency(paymentTotal)}</span></div>
+              <div className="payment-chart">
+                {paymentEntries.length === 0 ? <div className="empty-state">No payment data for this period.</div> : paymentEntries.map(([method, amount]) => {
+                  const percentage = paymentTotal ? (Number(amount) / paymentTotal) * 100 : 0;
+                  return <div className="payment-chart-row" key={method}><div className="payment-chart-label"><strong>{method}</strong><span>{percentage.toFixed(0)}%</span></div><div className="report-progress-track"><span style={{ width: `${percentage}%` }} /></div><div className="payment-chart-value">{formatCurrency(amount)}</div></div>;
+                })}
+              </div>
             </div>
           </div>
-          <div className="metric-card metric-card-highlight">
-            <div className="metric-card-label">Estimated Profit Today</div>
-            <div className="metric-card-value">{formatCurrency(dashboardStats.today?.estimatedProfit ?? 0)}</div>
-          </div>
-        </div>
+        </>
       )}
 
       {reportData && (
@@ -160,7 +147,7 @@ export default function ReportsPage() {
             <div className="pos-panel-header"><span className="pos-panel-title">Peak Hours</span></div>
             <div className="table-container">
               <table className="pos-table analytics-table"><thead><tr><th>Time</th><th>Transactions</th><th style={{ textAlign: 'right' }}>Sales</th></tr></thead>
-                <tbody>{(reportData.peakHours || []).length === 0 ? <tr><td colSpan="3" className="empty-state">No hourly sales recorded.</td></tr> : reportData.peakHours.map((item) => <tr key={item.hour}><td><strong>{`${String(item.hour).padStart(2, '0')}:00 – ${String((item.hour + 1) % 24).padStart(2, '0')}:00`}</strong></td><td>{item.transactions}</td><td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatCurrency(item.sales)}</td></tr>)}</tbody>
+                <tbody>{(reportData.peakHours || []).length === 0 ? <tr><td colSpan="3" className="empty-state">No hourly sales recorded.</td></tr> : reportData.peakHours.map((item) => <tr key={item.hour}><td><strong>{formatPeakHour(item.hour)} – {formatPeakHour((Number(item.hour) + 1) % 24)}</strong></td><td>{item.transactions}</td><td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatCurrency(item.sales)}</td></tr>)}</tbody>
               </table>
             </div>
           </div>
@@ -247,9 +234,9 @@ export default function ReportsPage() {
                       </td>
                     </tr>
                   ) : (
-                    reportData.bestSellers.map((item) => (
+                    bestSellers.map((item) => (
                       <tr key={item.productId}>
-                        <td><strong>{item.productName}</strong></td>
+                        <td><strong>{item.productName}</strong><div className="product-sales-bar"><span style={{ width: `${(Number(item.quantity) / maxProductQuantity) * 100}%` }} /></div></td>
                         <td style={{ fontFamily: 'var(--font-mono)' }}>{item.sku}</td>
                         <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{formatQuantity(item.quantity)}</td>
                         <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>

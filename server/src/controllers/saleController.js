@@ -70,8 +70,7 @@ exports.getSales = async (req, res, next) => {
 
     const take = Math.min(parseInt(limit, 10) || 50, 100);
     const skip = ((parseInt(page, 10) || 1) - 1) * take;
-
-    const [sales, totalCount] = await Promise.all([
+    const [sales, totalCount, amountSummary, statusSummary, paymentSummary] = await Promise.all([
       prisma.sale.findMany({
         where,
         include: {
@@ -87,6 +86,9 @@ exports.getSales = async (req, res, next) => {
         skip,
       }),
       prisma.sale.count({ where }),
+      prisma.sale.aggregate({ where, _sum: { totalAmount: true } }),
+      prisma.sale.groupBy({ by: ['status'], where, _count: { _all: true } }),
+      prisma.sale.groupBy({ by: ['paymentMethod'], where, _sum: { totalAmount: true }, _count: { _all: true } }),
     ]);
 
     res.json({
@@ -96,6 +98,16 @@ exports.getSales = async (req, res, next) => {
         total: totalCount,
         page: parseInt(page, 10) || 1,
         pages: Math.ceil(totalCount / take),
+        summary: {
+          totalAmount: amountSummary._sum.totalAmount || 0,
+          completed: statusSummary.find((item) => item.status === 'COMPLETED')?._count._all || 0,
+          refunded: statusSummary.filter((item) => ['REFUNDED', 'PARTIALLY_REFUNDED'].includes(item.status)).reduce((sum, item) => sum + item._count._all, 0),
+          paymentMethods: paymentSummary.map((item) => ({
+            method: item.paymentMethod,
+            amount: item._sum.totalAmount || 0,
+            count: item._count._all,
+          })),
+        },
       },
     });
   } catch (error) {
