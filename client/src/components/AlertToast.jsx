@@ -6,6 +6,18 @@ export default function AlertToast({ type = 'success', message, onClose }) {
     return () => window.clearTimeout(timer);
   }, [message, onClose]);
 
+  useEffect(() => {
+    if (type !== 'success') return undefined;
+    const handleEnter = (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEnter, true);
+    return () => window.removeEventListener('keydown', handleEnter, true);
+  }, [type, onClose]);
+
   return (
     <div className="alert-modal-backdrop">
       <div className={`alert-modal-card ${type}`} role={type === 'error' ? 'alert' : 'status'}>
