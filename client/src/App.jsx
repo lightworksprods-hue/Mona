@@ -94,10 +94,6 @@ export default function App() {
   }, [user, isAdmin]);
 
   useEffect(() => {
-    if (user && !isAdmin && cashDrawerOpen === false) setActiveTab('cash');
-  }, [user, isAdmin, cashDrawerOpen]);
-
-  useEffect(() => {
     if (user && !isAdmin && !['pos', 'products', 'cash'].includes(activeTab)) {
       setActiveTab(cashDrawerOpen === false ? 'cash' : 'pos');
     }
@@ -201,7 +197,7 @@ export default function App() {
           </div>
         )}
         <Suspense fallback={<div className="page-state">Loading page...</div>}>
-          {activeTab === 'pos' && (isAdmin || cashDrawerOpen === true) && (
+          {activeTab === 'pos' && (
             <CounterPOSPage
               storeInfo={storeInfo}
               cashDrawerOpen={cashDrawerOpen}

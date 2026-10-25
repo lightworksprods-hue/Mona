@@ -593,6 +593,70 @@ html[data-theme='dark'] .weight-modal .modal-footer {
 }
 
 /* Two-Column POS Workstation Layout */
+.pos-workspace {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+}
+
+.pos-workspace.is-locked .pos-layout {
+  filter: grayscale(1);
+  opacity: .48;
+  pointer-events: none;
+  user-select: none;
+}
+
+.pos-lock-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(255, 255, 255, .22);
+}
+
+.pos-lock-card {
+  width: min(100%, 420px);
+  padding: 30px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.pos-lock-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  background: var(--soft-pink-bg);
+  color: var(--dark-pink);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.pos-lock-card h2 {
+  margin: 0 0 8px;
+  color: var(--dark-pink);
+  font-size: 21px;
+}
+
+.pos-lock-card p {
+  margin: 0 0 20px;
+  color: var(--secondary-text);
+  line-height: 1.5;
+}
+
+html[data-theme='dark'] .pos-lock-overlay {
+  background: rgba(15, 23, 42, .2);
+}
+
 .pos-layout {
   display: grid;
   grid-template-columns: 1fr 380px;

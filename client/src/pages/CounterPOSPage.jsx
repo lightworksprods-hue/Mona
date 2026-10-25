@@ -59,6 +59,7 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
   const [isDeletingAllTransactions, setIsDeletingAllTransactions] = useState(false);
 
   const productInputRef = useRef(null);
+  const posLocked = !isAdmin && cashDrawerOpen !== true;
 
   // Keep the destructive history action out of the visible cashier toolbar.
   // Ctrl+D opens the existing confirmation dialog; it never archives directly.
@@ -68,6 +69,8 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
   // Ctrl+C opens the existing clear-cart confirmation.
   useEffect(() => {
     const handlePosShortcuts = (event) => {
+      if (posLocked) return;
+
       if (event.ctrlKey && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'd') {
         event.preventDefault();
         setShowDeleteAllTransactionsConfirm(true);
@@ -95,12 +98,12 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
 
     window.addEventListener('keydown', handlePosShortcuts, true);
     return () => window.removeEventListener('keydown', handlePosShortcuts, true);
-  }, [cart.length]);
+  }, [cart.length, posLocked]);
 
   // Keep one field ready for either product search or a barcode scanner.
   useEffect(() => {
-    focusProductInput();
-  }, []);
+    if (!posLocked) focusProductInput();
+  }, [posLocked]);
 
   const focusProductInput = () => {
     if (productInputRef.current) {
@@ -259,6 +262,8 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
     let lastKeyTime = 0;
 
     const handleScannerKeyDown = (event) => {
+      if (posLocked) return;
+
       const now = Date.now();
 
       if (event.key === 'Enter') {
@@ -289,7 +294,7 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
 
     window.addEventListener('keydown', handleScannerKeyDown, true);
     return () => window.removeEventListener('keydown', handleScannerKeyDown, true);
-  }, [catalogProducts, scanQuantity]);
+  }, [catalogProducts, posLocked, scanQuantity]);
 
   const isWeightProduct = (product) => {
     const unit = product.unit?.trim().toLowerCase();
@@ -303,6 +308,8 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
 
   // Products sold by weight ask the cashier for kilograms before adding to the cart.
   const addProductToCart = (product) => {
+    if (posLocked) return;
+
     if (isWeightProduct(product)) {
       setWeightProduct(product);
       return;
@@ -312,6 +319,8 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
   };
 
   const addProductToCartWithQuantity = (product, requestedQuantity) => {
+    if (posLocked) return;
+
     const quantityToAdd = Number(requestedQuantity);
     if (!Number.isFinite(quantityToAdd) || quantityToAdd <= 0) return;
 
@@ -491,7 +500,6 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
       : /^\d{4}$/.test(paymentReference.trim()));
 
   const drawerUnavailable = paymentMethod === 'CASH' && cashDrawerOpen === false;
-
   // Fast cash tender buttons (₱100, ₱500, ₱1,000, Exact)
   const handleQuickCash = (amount) => {
     if (amount === 'exact') {
@@ -598,7 +606,8 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
   };
 
   return (
-    <div className="pos-layout">
+    <div className={`pos-workspace ${posLocked ? 'is-locked' : ''}`} aria-disabled={posLocked}>
+      <div className="pos-layout">
       {/* LEFT SECTION: PRODUCT SEARCH, BARCODE SCANNER & SHOPPING CART */}
       <div className="counter-workflow-column">
         {/* Prominent running total for the cashier */}
@@ -995,6 +1004,21 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
           </div>
         </div>
       </section>
+
+      </div>
+
+      {posLocked && (
+        <div className="pos-lock-overlay" role="status">
+          <div className="pos-lock-card">
+            <span className="pos-lock-icon" aria-hidden="true">!</span>
+            <h2>POS unavailable</h2>
+            <p>You need to start the shift or open the cash drawer before making a sale.</p>
+            <button type="button" className="btn btn-primary" onClick={onOpenCashDrawer}>
+              Start shift / Open drawer
+            </button>
+          </div>
+        </div>
+      )}
 
       {showClearCartConfirm && (
         <div className="modal-overlay" onMouseDown={() => setShowClearCartConfirm(false)}>
