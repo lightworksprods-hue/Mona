@@ -3,6 +3,7 @@ import { api } from '../services/api';
 import AlertToast from '../components/AlertToast';
 import { formatCurrency } from '../utils/formatters';
 import { downloadCsv } from '../utils/reportExport';
+import { useAuth } from '../context/AuthContext';
 
 const PRODUCTS_PER_PAGE = 10;
 
@@ -50,11 +51,12 @@ function printBarcode(product) {
 }
 
 export default function ProductsPage() {
+  const { isAdmin } = useAuth();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(() => (isAdmin ? 'all' : 'active'));
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -100,7 +102,7 @@ export default function ProductsPage() {
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [search, categoryFilter, statusFilter]);
+  }, [search, categoryFilter, statusFilter, isAdmin]);
 
   const totalPages = Math.max(1, Math.ceil(products.length / PRODUCTS_PER_PAGE));
   const visiblePage = Math.min(currentPage, totalPages);
@@ -115,8 +117,8 @@ export default function ProductsPage() {
       const res = await api.getProducts({
         search,
         categoryId: categoryFilter,
-        ...(statusFilter === 'active' ? { activeOnly: true } : {}),
-        ...(statusFilter === 'inactive' ? { inactiveOnly: true } : {}),
+        ...(!isAdmin || statusFilter === 'active' ? { activeOnly: true } : {}),
+        ...(isAdmin && statusFilter === 'inactive' ? { inactiveOnly: true } : {}),
       });
       setProducts(res.data || []);
     } catch (err) {
@@ -500,11 +502,9 @@ export default function ProductsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div className="pos-panel-header" style={{ borderRadius: 'var(--radius-sm)' }}>
-        <h1 className="pos-panel-title" style={{ fontSize: '18px' }}>Product Catalog Management</h1>
+        <h1 className="pos-panel-title" style={{ fontSize: '18px' }}>{isAdmin ? 'Product Catalog Management' : 'Product Catalog'}</h1>
         <div className="product-header-actions">
-          <button id="btn-add-product" className="btn btn-primary" onClick={handleOpenAdd}>
-            + Add Product
-          </button>
+          {isAdmin && <button id="btn-add-product" className="btn btn-primary" onClick={handleOpenAdd}>+ Add Product</button>}
           <button
             type="button"
             className="btn btn-secondary"
@@ -516,7 +516,7 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      <div className="pos-panel bulk-import-card">
+      {isAdmin && <div className="pos-panel bulk-import-card">
         <div className="bulk-import-info">
           <h2 className="pos-panel-title" style={{ fontSize: '15px' }}>Bulk Import Products</h2>
           <p style={{ margin: '4px 0 0', color: 'var(--secondary-text)', fontSize: '12px' }}>
@@ -539,7 +539,7 @@ export default function ProductsPage() {
             Download CSV Template
           </button>
         </div>
-      </div>
+      </div>}
 
       {/* Filter and Search Bar */}
       <div className="pos-panel product-filters">
@@ -550,31 +550,31 @@ export default function ProductsPage() {
           value={search}
           onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
         />
-        <select
-          className="form-control"
-          value={categoryFilter}
-          onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
-        >
-          <option value="">All Categories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <select
-          className="form-control"
-          value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-          aria-label="Product status"
-        >
-          <option value="all">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="inactive">Deactivated</option>
-        </select>
-        <button type="button" className="btn btn-secondary" onClick={() => setIsCategoryModalOpen(true)}>
-          Manage Categories
-        </button>
+        {isAdmin && <>
+          <select
+            className="form-control"
+            value={categoryFilter}
+            onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
+          >
+            <option value="">All Categories</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <select
+            className="form-control"
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+            aria-label="Product status"
+          >
+            <option value="all">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Deactivated</option>
+          </select>
+        </>}
+        {isAdmin && <button type="button" className="btn btn-secondary" onClick={() => setIsCategoryModalOpen(true)}>Manage Categories</button>}
       </div>
 
       {errorMessage && <AlertToast type="error" message={errorMessage} onClose={() => setErrorMessage('')} />}
@@ -594,13 +594,13 @@ export default function ProductsPage() {
                 <th style={{ textAlign: 'right' }}>Selling Price incl. VAT</th>
                 <th style={{ textAlign: 'center' }}>Stock</th>
                 <th style={{ textAlign: 'center' }}>Status</th>
-                <th style={{ textAlign: 'center' }}>Actions</th>
+                {isAdmin && <th style={{ textAlign: 'center' }}>Actions</th>}
               </tr>
             </thead>
             <tbody>
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan="9" style={{ textAlign: 'center', padding: '30px' }}>
+                  <td colSpan={isAdmin ? 9 : 8} style={{ textAlign: 'center', padding: '30px' }}>
                     {isLoading ? 'Loading products...' : 'No products found.'}
                   </td>
                 </tr>
@@ -651,7 +651,7 @@ export default function ProductsPage() {
                         {p.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td style={{ textAlign: 'center' }}>
+                    {isAdmin && <td style={{ textAlign: 'center' }}>
                       <button
                         className="btn btn-secondary btn-sm"
                         style={{ marginRight: '6px' }}
@@ -666,7 +666,7 @@ export default function ProductsPage() {
                       >
                         {p.isActive ? 'Deactivate' : 'Delete'}
                       </button>
-                    </td>
+                    </td>}
                   </tr>
                 ))
               )}

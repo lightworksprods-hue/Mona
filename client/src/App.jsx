@@ -34,6 +34,24 @@ export default function App() {
   const [queueVersion, setQueueVersion] = useState(0);
 
   useEffect(() => {
+    if (!user || isAdmin) return undefined;
+
+    const handleCashierPageShortcuts = (event) => {
+      if (!event.ctrlKey || event.altKey || event.shiftKey) return;
+      if (event.key.toLowerCase() === 'p') {
+        event.preventDefault();
+        setActiveTab('products');
+      } else if (event.key.toLowerCase() === 'r') {
+        event.preventDefault();
+        setActiveTab('pos');
+      }
+    };
+
+    window.addEventListener('keydown', handleCashierPageShortcuts, true);
+    return () => window.removeEventListener('keydown', handleCashierPageShortcuts, true);
+  }, [user, isAdmin]);
+
+  useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('mona-theme', theme);
   }, [theme]);
@@ -74,7 +92,7 @@ export default function App() {
   }, [user, isAdmin, cashDrawerOpen]);
 
   useEffect(() => {
-    if (user && !isAdmin && !['pos', 'cash'].includes(activeTab)) {
+    if (user && !isAdmin && !['pos', 'products', 'cash'].includes(activeTab)) {
       setActiveTab(cashDrawerOpen === false ? 'cash' : 'pos');
     }
   }, [user, isAdmin, activeTab, cashDrawerOpen]);
@@ -184,7 +202,7 @@ export default function App() {
               onOpenCashDrawer={() => setActiveTab('cash')}
             />
           )}
-          {activeTab === 'products' && isAdmin && <ProductsPage />}
+          {activeTab === 'products' && <ProductsPage />}
           {activeTab === 'inventory' && isAdmin && <InventoryPage />}
           {activeTab === 'transactions' && isAdmin && <TransactionsPage storeInfo={storeInfo} />}
           {activeTab === 'cash' && <CashDrawerPage onSessionChange={setCashDrawerOpen} />}
