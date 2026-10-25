@@ -132,7 +132,7 @@ Frontend client will run at: `http://localhost:5173`.
 1. Create a new **Web Service** on Render.
 2. Set Root Directory to `server`.
 3. Build Command: `npm install && npx prisma generate`.
-4. Start Command: `node src/server.js`.
+4. Start Command: `npm start` (this applies pending Prisma migrations before starting the API).
 5. Add Environment Variables:
    - `DATABASE_URL` = Your Supabase pooler URL
    - `DIRECT_URL` = Your Supabase direct connection URL
