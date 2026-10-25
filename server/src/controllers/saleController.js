@@ -33,12 +33,108 @@ exports.checkout = async (req, res, next) => {
   }
 };
 
+// Soft-delete sales and inventory movement history without changing product
+// stock or customer/loyalty state. Related records remain recoverable.
+// This is intentionally restricted to administrators at the route level.
+exports.deleteAllTransactions = async (req, res, next) => {
+  try {
+    const deleted = await prisma.$transaction(async (tx) => {
+      const deletedAt = new Date();
+      const saleResult = await tx.sale.updateMany({
+        where: { deletedAt: null },
+        data: { deletedAt },
+      });
+      const inventoryResult = await tx.inventoryMovement.updateMany({
+        where: { deletedAt: null },
+        data: { deletedAt },
+      });
+
+      return {
+        saleCount: saleResult.count,
+        inventoryMovementCount: inventoryResult.count,
+      };
+    });
+
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'ALL_TRANSACTIONS_SOFT_DELETED',
+      entity: 'Sale',
+      details: deleted,
+      ipAddress: req.ip,
+    });
+
+    res.json({
+      success: true,
+      message: `Archived ${deleted.saleCount} transaction${deleted.saleCount === 1 ? '' : 's'} and ${deleted.inventoryMovementCount} inventory movement${deleted.inventoryMovementCount === 1 ? '' : 's'}.`,
+      data: deleted,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Developer-only recovery view for soft-deleted history.
+exports.getArchivedTransactions = async (req, res, next) => {
+  try {
+    const [sales, inventoryMovementCount] = await Promise.all([
+      prisma.sale.findMany({
+        where: { deletedAt: { not: null } },
+        select: {
+          id: true,
+          transactionNumber: true,
+          totalAmount: true,
+          status: true,
+          createdAt: true,
+          deletedAt: true,
+          cashier: { select: { fullName: true, username: true } },
+        },
+        orderBy: { deletedAt: 'desc' },
+        take: 500,
+      }),
+      prisma.inventoryMovement.count({ where: { deletedAt: { not: null } } }),
+    ]);
+
+    res.json({ success: true, data: { sales, inventoryMovementCount } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Developer-only recovery action for the soft-deleted history.
+exports.restoreAllTransactions = async (req, res, next) => {
+  try {
+    const restored = await prisma.$transaction(async (tx) => {
+      const saleResult = await tx.sale.updateMany({
+        where: { deletedAt: { not: null } },
+        data: { deletedAt: null },
+      });
+      const inventoryResult = await tx.inventoryMovement.updateMany({
+        where: { deletedAt: { not: null } },
+        data: { deletedAt: null },
+      });
+      return { saleCount: saleResult.count, inventoryMovementCount: inventoryResult.count };
+    });
+
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'ALL_TRANSACTIONS_RESTORED',
+      entity: 'Sale',
+      details: restored,
+      ipAddress: req.ip,
+    });
+
+    res.json({ success: true, message: 'Archived transaction and inventory history restored.', data: restored });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Get sales transactions list with pagination and filters
 exports.getSales = async (req, res, next) => {
   try {
     const { search, paymentMethod, status, startDate, endDate, limit = 50, page = 1 } = req.query;
 
-    const where = {};
+    const where = { deletedAt: null };
 
     if (search && search.trim()) {
       where.transactionNumber = { contains: search.trim(), mode: 'insensitive' };
@@ -129,6 +225,7 @@ exports.getSaleById = async (req, res, next) => {
 
     const sale = await prisma.sale.findFirst({
       where: {
+        deletedAt: null,
         OR: [{ id }, { transactionNumber: id }],
       },
       include: {
@@ -170,8 +267,8 @@ exports.processRefund = async (req, res, next) => {
   try {
     const { saleId, reason, items, restockItems = true } = req.body;
 
-    const sale = await prisma.sale.findUnique({
-      where: { id: saleId },
+    const sale = await prisma.sale.findFirst({
+      where: { id: saleId, deletedAt: null },
       include: { items: true, refunds: { select: { amount: true, itemsJson: true } } },
     });
 

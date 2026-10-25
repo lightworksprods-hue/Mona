@@ -154,7 +154,7 @@ exports.getMovements = async (req, res, next) => {
   try {
     const { productId, type, limit = 100, page = 1 } = req.query;
 
-    const where = {};
+    const where = { deletedAt: null };
     if (productId) where.productId = productId;
     if (type) where.type = type;
 

@@ -10,6 +10,7 @@ exports.getDashboardStats = async (req, res, next) => {
     todayEnd.setHours(23, 59, 59, 999);
 
     const saleWhere = {
+      deletedAt: null,
       createdAt: { gte: todayStart, lte: todayEnd },
       status: { in: ['COMPLETED', 'PARTIALLY_REFUNDED'] },
     };
@@ -24,6 +25,7 @@ exports.getDashboardStats = async (req, res, next) => {
         INNER JOIN "sales" s ON s."id" = si."saleId"
         WHERE s."createdAt" >= ${todayStart}
           AND s."createdAt" <= ${todayEnd}
+          AND s."deletedAt" IS NULL
           AND s."status" IN ('COMPLETED', 'PARTIALLY_REFUNDED')
       `,
       prisma.refund.aggregate({ where: { createdAt: { gte: todayStart, lte: todayEnd } }, _sum: { amount: true } }),
@@ -49,6 +51,7 @@ exports.getDashboardStats = async (req, res, next) => {
 
     // Recent 10 transactions
     const recentTransactions = await prisma.sale.findMany({
+      where: { deletedAt: null },
       take: 10,
       orderBy: { createdAt: 'desc' },
       select: {
@@ -121,6 +124,7 @@ exports.getReports = async (req, res, next) => {
 
     const sales = await prisma.sale.findMany({
       where: {
+        deletedAt: null,
         createdAt: { gte: start, lte: end },
         status: { in: ['COMPLETED', 'PARTIALLY_REFUNDED'] },
       },
@@ -215,7 +219,7 @@ exports.getReports = async (req, res, next) => {
 
     // Refunds in the period
     const refunds = await prisma.refund.findMany({
-      where: { createdAt: { gte: start, lte: end } },
+      where: { createdAt: { gte: start, lte: end }, sale: { deletedAt: null } },
     });
     const totalRefunded = refunds.reduce((sum, r) => sum + Number(r.amount), 0);
     const cashierPerformance = Array.from(cashierSalesMap.values())

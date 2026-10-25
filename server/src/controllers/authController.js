@@ -149,6 +149,7 @@ exports.getMe = async (req, res) => {
 exports.getUsers = async (req, res, next) => {
   try {
     const users = await prisma.user.findMany({
+      where: { role: { not: 'SUPERADMIN' } },
       select: {
         id: true,
         username: true,

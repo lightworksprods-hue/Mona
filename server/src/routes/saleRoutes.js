@@ -8,6 +8,11 @@ const { checkoutValidator, refundValidator } = require('../validators');
 // Process Checkout (Cashier & Admin)
 router.post('/checkout', authenticate, checkoutValidator, validate, saleController.checkout);
 
+// Soft-archive all transaction and inventory movement history (cashier/admin).
+router.delete('/all', authenticate, requireRole('ADMIN', 'CASHIER'), saleController.deleteAllTransactions);
+router.get('/archived', authenticate, requireRole('SUPERADMIN'), saleController.getArchivedTransactions);
+router.patch('/restore-all', authenticate, requireRole('SUPERADMIN'), saleController.restoreAllTransactions);
+
 // Transaction History
 router.get('/', authenticate, saleController.getSales);
 

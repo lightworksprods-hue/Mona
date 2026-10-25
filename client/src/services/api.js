@@ -68,6 +68,9 @@ export const api = {
 
   // Sales & Checkout
   checkout: (payload) => request('/sales/checkout', { method: 'POST', body: JSON.stringify(payload) }),
+  deleteAllTransactions: () => request('/sales/all', { method: 'DELETE' }),
+  getArchivedTransactions: () => request('/sales/archived'),
+  restoreAllTransactions: () => request('/sales/restore-all', { method: 'PATCH' }),
   getSales: (params = {}) => {
     const cleanParams = Object.fromEntries(
       Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== '')

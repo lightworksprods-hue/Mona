@@ -208,6 +208,7 @@ model Sale {
   paymentReference   String?
   status             SaleStatus          @default(COMPLETED)
   notes              String?
+  deletedAt          DateTime?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
@@ -271,6 +272,7 @@ model InventoryMovement {
   user         User          @relation(fields: [userId], references: [id])
   saleId       String?
   sale         Sale?         @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  deletedAt    DateTime?
   createdAt    DateTime      @default(now())
 
   @@index([productId])

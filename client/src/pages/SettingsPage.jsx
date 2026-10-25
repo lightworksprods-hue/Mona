@@ -460,7 +460,7 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((u) => (
+                  {users.filter((u) => u.role !== 'SUPERADMIN').map((u) => (
                     <tr key={u.id}>
                       <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>{u.username}</td>
                       <td>{u.fullName}</td>

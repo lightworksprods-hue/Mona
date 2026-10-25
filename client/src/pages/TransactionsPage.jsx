@@ -13,7 +13,7 @@ const getTodayInput = () => {
 };
 
 export default function TransactionsPage({ storeInfo }) {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isSuperAdmin } = useAuth();
   const [sales, setSales] = useState([]);
   const [search, setSearch] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('');
@@ -39,6 +39,9 @@ export default function TransactionsPage({ storeInfo }) {
   const [restockOnRefund, setRestockOnRefund] = useState(true);
   const [refundQuantities, setRefundQuantities] = useState({});
   const [refundLoading, setRefundLoading] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const [archivedData, setArchivedData] = useState({ sales: [], inventoryMovementCount: 0 });
+  const [archivedLoading, setArchivedLoading] = useState(false);
 
   const getRefundedQuantities = (sale) => {
     const refunded = {};
@@ -97,6 +100,37 @@ export default function TransactionsPage({ storeInfo }) {
       setErrorMessage(err.message || 'Error fetching transactions');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadArchivedTransactions = async () => {
+    setArchivedLoading(true);
+    try {
+      const response = await api.getArchivedTransactions();
+      setArchivedData(response.data || { sales: [], inventoryMovementCount: 0 });
+    } catch (err) {
+      setErrorMessage(err.message || 'Unable to load archived transactions');
+    } finally {
+      setArchivedLoading(false);
+    }
+  };
+
+  const handleToggleArchived = () => {
+    const nextValue = !showArchived;
+    setShowArchived(nextValue);
+    if (nextValue) loadArchivedTransactions();
+  };
+
+  const handleRestoreArchived = async () => {
+    if (!window.confirm('Restore all archived transactions and inventory movement history?')) return;
+    try {
+      const response = await api.restoreAllTransactions();
+      setSuccessMessage(response.message || 'Archived history restored.');
+      setArchivedData({ sales: [], inventoryMovementCount: 0 });
+      await loadSales();
+      if (showArchived) await loadArchivedTransactions();
+    } catch (err) {
+      setErrorMessage(err.message || 'Unable to restore archived transactions');
     }
   };
 
@@ -246,8 +280,23 @@ export default function TransactionsPage({ storeInfo }) {
             <span className="export-toolbar-divider" />
           </>}
           <button className="btn btn-secondary btn-sm" onClick={loadSales}>Refresh History</button>
+          {isSuperAdmin && <button className="btn btn-secondary btn-sm" onClick={handleToggleArchived}>{showArchived ? 'Hide Archived' : 'Developer: Archived'}</button>}
         </div>
       </div>
+
+      {isSuperAdmin && showArchived && (
+        <div className="pos-panel">
+          <div className="pos-panel-header">
+            <span className="pos-panel-title">Developer Archived History</span>
+            <button className="btn btn-primary btn-sm" onClick={handleRestoreArchived} disabled={archivedLoading || (archivedData.sales.length === 0 && archivedData.inventoryMovementCount === 0)}>Restore All</button>
+          </div>
+          {archivedLoading ? <div className="empty-state">Loading archived history...</div> : (
+            <div className="empty-state">
+              {archivedData.sales.length} archived sale record{archivedData.sales.length === 1 ? '' : 's'} and {archivedData.inventoryMovementCount} archived inventory movement{archivedData.inventoryMovementCount === 1 ? '' : 's'}.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Filter Strip */}
       <div className="pos-panel transaction-filters">

@@ -18,6 +18,7 @@ exports.openHardware = async (req, res, next) => {
 
 async function calculateSession(session) {
   const saleWhere = {
+    deletedAt: null,
     cashierId: session.cashierId,
     paymentMethod: 'CASH',
     createdAt: { gte: session.openedAt },

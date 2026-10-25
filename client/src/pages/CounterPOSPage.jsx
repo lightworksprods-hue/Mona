@@ -5,6 +5,7 @@ import ReceiptModal from '../components/ReceiptModal';
 import AlertToast from '../components/AlertToast';
 import WeightPromptModal from '../components/WeightPromptModal';
 import { cacheProducts, getCachedProducts, isNetworkError, queueSale } from '../utils/offlineStore';
+import { useAuth } from '../context/AuthContext';
 
 function formatTenderedInput(value, showDecimals = false) {
   if (value === '') return '';
@@ -20,6 +21,7 @@ function formatTenderedInput(value, showDecimals = false) {
 }
 
 export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpenCashDrawer }) {
+  const { isAdmin } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [scanQuantity, setScanQuantity] = useState('');
   const [highlightedSearchIndex, setHighlightedSearchIndex] = useState(-1);
@@ -53,6 +55,8 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
   const [completedSale, setCompletedSale] = useState(null);
   const [weightProduct, setWeightProduct] = useState(null);
   const [showClearCartConfirm, setShowClearCartConfirm] = useState(false);
+  const [showDeleteAllTransactionsConfirm, setShowDeleteAllTransactionsConfirm] = useState(false);
+  const [isDeletingAllTransactions, setIsDeletingAllTransactions] = useState(false);
 
   const productInputRef = useRef(null);
 
@@ -395,6 +399,20 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
     focusProductInput();
   };
 
+  const confirmDeleteAllTransactions = async () => {
+    setIsDeletingAllTransactions(true);
+    setErrorMessage('');
+    try {
+      const response = await api.deleteAllTransactions();
+      setShowDeleteAllTransactionsConfirm(false);
+      setSuccessMessage(response.message || 'All transactions deleted.');
+    } catch (error) {
+      setErrorMessage(error.message || 'Unable to delete transactions.');
+    } finally {
+      setIsDeletingAllTransactions(false);
+    }
+  };
+
   // Financial Calculations
   const subtotal = roundMoney(cart.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0));
   const itemDiscountsTotal = roundMoney(cart.reduce((sum, item) => sum + Number(item.discount || 0), 0));
@@ -583,6 +601,14 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
               disabled={cart.length === 0}
             >
               Clear Cart
+            </button>
+            <button
+              id="btn-archive-all-transactions"
+              className="btn btn-secondary btn-sm"
+              style={{ color: 'var(--error)' }}
+              onClick={() => setShowDeleteAllTransactionsConfirm(true)}
+            >
+              Archive All Transactions
             </button>
           </div>
         </div>
@@ -938,6 +964,32 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
             <div className="modal-footer">
               <button className="btn btn-secondary" type="button" onClick={() => setShowClearCartConfirm(false)}>Keep Cart</button>
               <button className="btn btn-primary" type="button" onClick={confirmClearCart}>Clear Cart</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteAllTransactionsConfirm && (
+        <div className="modal-overlay" onMouseDown={() => !isDeletingAllTransactions && setShowDeleteAllTransactionsConfirm(false)}>
+          <div
+            className="modal-dialog clear-cart-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-all-transactions-dialog-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div className="modal-title" id="delete-all-transactions-dialog-title">Archive all transactions?</div>
+              <button className="modal-close-btn" type="button" onClick={() => setShowDeleteAllTransactionsConfirm(false)} aria-label="Close" disabled={isDeletingAllTransactions}>×</button>
+            </div>
+            <div className="modal-body clear-cart-body">
+              This hides all sales transaction and inventory movement history from the POS. The records are kept in the database and can be restored later. Product stock quantities, customers, and loyalty balances will not be changed.
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" type="button" onClick={() => setShowDeleteAllTransactionsConfirm(false)} disabled={isDeletingAllTransactions}>Cancel</button>
+              <button className="btn btn-primary" type="button" onClick={confirmDeleteAllTransactions} disabled={isDeletingAllTransactions}>
+                {isDeletingAllTransactions ? 'Archiving...' : 'Archive All Transactions'}
+              </button>
             </div>
           </div>
         </div>
