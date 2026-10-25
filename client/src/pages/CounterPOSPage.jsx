@@ -442,6 +442,22 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
     }
   };
 
+  useEffect(() => {
+    if (!showDeleteAllTransactionsConfirm) return undefined;
+
+    const handleArchiveConfirmationKey = (event) => {
+      if (event.key === 'Escape' && !isDeletingAllTransactions) {
+        setShowDeleteAllTransactionsConfirm(false);
+      } else if (event.key === 'Enter' && !isDeletingAllTransactions) {
+        event.preventDefault();
+        confirmDeleteAllTransactions();
+      }
+    };
+
+    window.addEventListener('keydown', handleArchiveConfirmationKey);
+    return () => window.removeEventListener('keydown', handleArchiveConfirmationKey);
+  }, [showDeleteAllTransactionsConfirm, isDeletingAllTransactions]);
+
   // Financial Calculations
   const subtotal = roundMoney(cart.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0));
   const itemDiscountsTotal = roundMoney(cart.reduce((sum, item) => sum + Number(item.discount || 0), 0));

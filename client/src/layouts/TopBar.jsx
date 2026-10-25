@@ -32,10 +32,11 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
     if (!showLogoutConfirm) return undefined;
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') setShowLogoutConfirm(false);
+      if (event.key === 'Enter') logout();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showLogoutConfirm]);
+  }, [showLogoutConfirm, logout]);
 
   useEffect(() => {
     if (isAdmin) return undefined;
