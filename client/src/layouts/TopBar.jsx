@@ -37,8 +37,21 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showLogoutConfirm]);
 
+  useEffect(() => {
+    if (isAdmin) return undefined;
+    const handleCashierLogoutShortcut = (event) => {
+      if (event.ctrlKey && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'x') {
+        event.preventDefault();
+        setShowLogoutConfirm(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleCashierLogoutShortcut, true);
+    return () => window.removeEventListener('keydown', handleCashierLogoutShortcut, true);
+  }, [isAdmin]);
+
   return (
-    <header>
+    <header className={!isAdmin ? 'cashier-shell-hidden' : ''}>
       <div className="top-bar">
         <div className="top-bar-left">
           <span className="brand-title">{storeInfo?.storeName || 'Counter POS'}</span>
@@ -53,27 +66,33 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
           <span className="user-status">
             Staff: <strong>{user?.fullName || user?.username}</strong>
           </span>
-          <button
-            type="button"
-            className="menu-toggle"
-            onClick={() => setIsNavMenuOpen((open) => !open)}
-            aria-expanded={isNavMenuOpen}
-            aria-controls="main-navigation"
-          >
-            Menu
-          </button>
-          <button
-            type="button"
-            className="theme-toggle"
+          {isAdmin && (
+            <button
+              type="button"
+              className="menu-toggle"
+              onClick={() => setIsNavMenuOpen((open) => !open)}
+              aria-expanded={isNavMenuOpen}
+              aria-controls="main-navigation"
+            >
+              Menu
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              type="button"
+              className="theme-toggle"
             onClick={onToggleTheme}
             aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
             title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
           >
             {theme === 'light' ? '☾ Dark' : '☀ Light'}
           </button>
-          <button id="btn-logout" className="btn btn-secondary btn-sm" onClick={handleLogout}>
-            Logout
-          </button>
+          )}
+          {isAdmin && (
+            <button id="btn-logout" className="btn btn-secondary btn-sm" onClick={handleLogout}>
+              Logout
+            </button>
+          )}
         </div>
       </div>
 

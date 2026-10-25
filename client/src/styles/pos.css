@@ -274,6 +274,11 @@ body {
 }
 
 /* Top Navigation Bar */
+.cashier-shell-hidden > .top-bar,
+.cashier-shell-hidden > .nav-bar {
+  display: none;
+}
+
 .top-bar {
   background-color: var(--white);
   border-bottom: 2px solid var(--border-color);

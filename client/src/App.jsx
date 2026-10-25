@@ -44,6 +44,12 @@ export default function App() {
       } else if (event.key.toLowerCase() === 'r') {
         event.preventDefault();
         setActiveTab('pos');
+      } else if (event.key.toLowerCase() === 'a') {
+        event.preventDefault();
+        setActiveTab('cash');
+      } else if (event.key.toLowerCase() === 'l') {
+        event.preventDefault();
+        setTheme((current) => current === 'light' ? 'dark' : 'light');
       }
     };
 
