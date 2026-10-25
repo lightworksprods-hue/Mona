@@ -60,6 +60,20 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
 
   const productInputRef = useRef(null);
 
+  // Keep the destructive history action out of the visible cashier toolbar.
+  // Ctrl+D opens the existing confirmation dialog; it never archives directly.
+  useEffect(() => {
+    const handleArchiveShortcut = (event) => {
+      if (event.ctrlKey && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'd') {
+        event.preventDefault();
+        setShowDeleteAllTransactionsConfirm(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleArchiveShortcut, true);
+    return () => window.removeEventListener('keydown', handleArchiveShortcut, true);
+  }, []);
+
   // Keep one field ready for either product search or a barcode scanner.
   useEffect(() => {
     focusProductInput();
@@ -601,14 +615,6 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
               disabled={cart.length === 0}
             >
               Clear Cart
-            </button>
-            <button
-              id="btn-archive-all-transactions"
-              className="btn btn-secondary btn-sm"
-              style={{ color: 'var(--error)' }}
-              onClick={() => setShowDeleteAllTransactionsConfirm(true)}
-            >
-              Archive All Transactions
             </button>
           </div>
         </div>
