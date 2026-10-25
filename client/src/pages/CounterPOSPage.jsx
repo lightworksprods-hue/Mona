@@ -64,6 +64,7 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
   // Ctrl+D opens the existing confirmation dialog; it never archives directly.
   // Ctrl+Q focuses the scan quantity field and selects its current value so
   // the next number typed replaces it.
+  // Ctrl+E focuses the amount received field and selects its current value.
   // Ctrl+C opens the existing clear-cart confirmation.
   useEffect(() => {
     const handlePosShortcuts = (event) => {
@@ -77,6 +78,13 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
         const quantityInput = document.getElementById('input-scan-quantity');
         quantityInput?.focus();
         quantityInput?.select();
+      }
+
+      if (event.ctrlKey && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'e') {
+        event.preventDefault();
+        const amountTenderedInput = document.getElementById('input-amount-tendered');
+        amountTenderedInput?.focus();
+        amountTenderedInput?.select();
       }
 
       if (event.ctrlKey && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'c' && cart.length > 0) {
@@ -931,6 +939,12 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
                   onBlur={() => {
                     setIsAmountTenderedFocused(false);
                     if (amountTendered !== '') setAmountTendered(Number(amountTendered).toFixed(2));
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      handleCheckout();
+                    }
                   }}
                   onChange={(event) => {
                     const rawValue = event.target.value.replace(/,/g, '');

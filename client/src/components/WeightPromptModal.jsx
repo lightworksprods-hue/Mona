@@ -41,6 +41,12 @@ export default function WeightPromptModal({ product, onClose, onConfirm }) {
             placeholder="e.g. 1.250"
             value={kilograms}
             onChange={(event) => setKilograms(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                handleSubmit(event);
+              }
+            }}
             autoFocus
           />
           {weight > available && <p className="weight-error">Only {available} kg is available.</p>}
