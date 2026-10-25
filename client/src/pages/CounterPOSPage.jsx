@@ -62,17 +62,32 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
 
   // Keep the destructive history action out of the visible cashier toolbar.
   // Ctrl+D opens the existing confirmation dialog; it never archives directly.
+  // Ctrl+Q focuses the scan quantity field and selects its current value so
+  // the next number typed replaces it.
+  // Ctrl+C opens the existing clear-cart confirmation.
   useEffect(() => {
-    const handleArchiveShortcut = (event) => {
+    const handlePosShortcuts = (event) => {
       if (event.ctrlKey && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'd') {
         event.preventDefault();
         setShowDeleteAllTransactionsConfirm(true);
       }
+
+      if (event.ctrlKey && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'q') {
+        event.preventDefault();
+        const quantityInput = document.getElementById('input-scan-quantity');
+        quantityInput?.focus();
+        quantityInput?.select();
+      }
+
+      if (event.ctrlKey && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'c' && cart.length > 0) {
+        event.preventDefault();
+        setShowClearCartConfirm(true);
+      }
     };
 
-    window.addEventListener('keydown', handleArchiveShortcut, true);
-    return () => window.removeEventListener('keydown', handleArchiveShortcut, true);
-  }, []);
+    window.addEventListener('keydown', handlePosShortcuts, true);
+    return () => window.removeEventListener('keydown', handlePosShortcuts, true);
+  }, [cart.length]);
 
   // Keep one field ready for either product search or a barcode scanner.
   useEffect(() => {

@@ -108,13 +108,15 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
           </button>
         )}
 
-        <button
-          id="nav-transactions"
-          className={`nav-tab ${activeTab === 'transactions' ? 'active' : ''}`}
-          onClick={() => handleTabChange('transactions')}
-        >
-          Transactions
-        </button>
+        {isAdmin && (
+          <button
+            id="nav-transactions"
+            className={`nav-tab ${activeTab === 'transactions' ? 'active' : ''}`}
+            onClick={() => handleTabChange('transactions')}
+          >
+            Transactions
+          </button>
+        )}
 
         <button
           id="nav-cash"

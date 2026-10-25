@@ -14,10 +14,10 @@ router.get('/archived', authenticate, requireRole('SUPERADMIN'), saleController.
 router.patch('/restore-all', authenticate, requireRole('SUPERADMIN'), saleController.restoreAllTransactions);
 
 // Transaction History
-router.get('/', authenticate, saleController.getSales);
+router.get('/', authenticate, requireRole('ADMIN'), saleController.getSales);
 
 // Sale Receipt / Details
-router.get('/:id', authenticate, saleController.getSaleById);
+router.get('/:id', authenticate, requireRole('ADMIN'), saleController.getSaleById);
 
 // Refunds are an administrator-only action.
 router.post(
