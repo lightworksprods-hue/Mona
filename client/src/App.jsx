@@ -67,6 +67,10 @@ export default function App() {
   }, [activeTab]);
 
   useEffect(() => {
+    if (user && !isAdmin) setActiveTab('products');
+  }, [user, isAdmin]);
+
+  useEffect(() => {
     if (user) {
       const cached = getCachedSettings();
       if (cached) setStoreInfo(cached);
