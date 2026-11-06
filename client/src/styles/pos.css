@@ -1273,6 +1273,7 @@ html[data-theme='dark'] .pos-lock-overlay {
 .customer-management-header p { margin: 4px 0 0; color: var(--secondary-text); font-size: 12px; }
 .customer-search-row { display: flex; gap: 10px; padding: 14px; border-bottom: 1px solid var(--border-color); }
 .customer-search-row .form-control { flex: 1; min-width: 0; }
+.customer-search-row .btn { flex: 0 0 auto; }
 .customer-create-row { display: flex; align-items: center; gap: 10px; padding: 14px; border-bottom: 1px solid var(--border-color); background: var(--soft-pink-bg); }
 .customer-create-row .form-control { flex: 1; min-width: 0; }
 .customer-points-badge { display: inline-block; padding: 4px 8px; border-radius: 999px; background: var(--soft-pink-bg); color: var(--dark-pink); font-weight: 700; font-size: 12px; }
@@ -1491,7 +1492,7 @@ html[data-theme='dark'] .pos-lock-overlay {
 
   .customer-loyalty-box { grid-template-columns: 1fr; }
   .customer-loyalty-box small { grid-column: auto; }
-  .customer-search-row { flex-direction: column; }
+  .customer-search-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
   .customer-create-row { align-items: stretch; flex-direction: column; }
 
   .order-details-table thead { display: none; }
@@ -2006,9 +2007,11 @@ html[data-theme='dark'] .pos-lock-overlay {
   gap: 6px;
   max-width: 100%;
 }
+.settings-tab-list .btn { white-space: nowrap; }
 
 @media (max-width: 900px) {
-  .settings-tab-list { justify-content: flex-start; width: 100%; }
+  .settings-tab-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); justify-content: stretch; width: 100%; }
+  .settings-tab-list .btn { width: 100%; }
 }
 
 .receipt-settings-card p { margin: 5px 0 0; color: var(--secondary-text); font-size: 12px; line-height: 1.45; }
