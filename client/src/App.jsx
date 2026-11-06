@@ -37,7 +37,8 @@ export default function App() {
     if (!user || isAdmin) return undefined;
 
     const handleCashierPageShortcuts = (event) => {
-      if (!event.ctrlKey || event.altKey || event.shiftKey) return;
+      if (!event.ctrlKey || event.shiftKey) return;
+      if (event.altKey) return;
       if (event.key.toLowerCase() === 'p') {
         event.preventDefault();
         setActiveTab('products');
@@ -47,7 +48,7 @@ export default function App() {
       } else if (event.key.toLowerCase() === 'a') {
         event.preventDefault();
         setActiveTab('cash');
-      } else if (event.key.toLowerCase() === 't') {
+      } else if (event.key.toLowerCase() === 'k') {
         event.preventDefault();
         setActiveTab('transactions');
       } else if (event.key.toLowerCase() === 'l') {
