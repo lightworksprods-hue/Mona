@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onToggleTheme, canUsePOS = true }) {
@@ -6,6 +6,7 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
+  const headerRef = useRef(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -39,6 +40,15 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
   }, [showLogoutConfirm, logout]);
 
   useEffect(() => {
+    if (!isNavMenuOpen) return undefined;
+    const closeMenuOutside = (event) => {
+      if (!headerRef.current?.contains(event.target)) setIsNavMenuOpen(false);
+    };
+    document.addEventListener('pointerdown', closeMenuOutside);
+    return () => document.removeEventListener('pointerdown', closeMenuOutside);
+  }, [isNavMenuOpen]);
+
+  useEffect(() => {
     if (isAdmin) return undefined;
     const handleCashierLogoutShortcut = (event) => {
       if (event.ctrlKey && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'x') {
@@ -52,7 +62,7 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
   }, [isAdmin]);
 
   return (
-    <header className={!isAdmin ? 'cashier-shell-hidden' : ''}>
+    <header ref={headerRef} className={!isAdmin ? 'cashier-shell-hidden' : ''}>
       <div className="top-bar">
         <div className="top-bar-left">
           <span className="brand-title">{storeInfo?.storeName || 'Counter POS'}</span>

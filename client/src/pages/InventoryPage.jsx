@@ -159,7 +159,7 @@ export default function InventoryPage() {
             className={`btn ${activeTab === 'movements' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
             onClick={() => setActiveTab('movements')}
           >
-            Movement Log
+            Stock History
           </button>
           <button
             className={`btn ${activeTab === 'adjust' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
@@ -177,7 +177,7 @@ export default function InventoryPage() {
       {successMessage && <AlertToast message={successMessage} onClose={() => setSuccessMessage('')} />}
 
       {/* OVERVIEW METRICS */}
-      {summary && (
+      {activeTab === 'summary' && summary && (
         <div className="dashboard-grid">
           <div className="metric-card">
             <div className="metric-card-label">Total Inventory Valuation (Cost)</div>
