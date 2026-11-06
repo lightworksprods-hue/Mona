@@ -11,9 +11,15 @@ const getTodayInput = () => {
   const today = new Date();
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 };
+const formatQuantity = (value) => {
+  const quantity = Number(value);
+  return Number.isFinite(quantity)
+    ? quantity.toLocaleString(undefined, { maximumFractionDigits: 3 })
+    : '0';
+};
 
 export default function TransactionsPage({ storeInfo }) {
-  const { isAdmin, isSuperAdmin } = useAuth();
+  const { isAdmin, isSuperAdmin, user } = useAuth();
   const [sales, setSales] = useState([]);
   const [search, setSearch] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('');
@@ -36,6 +42,8 @@ export default function TransactionsPage({ storeInfo }) {
   const [refundModalOpen, setRefundModalOpen] = useState(false);
   const [saleToRefund, setSaleToRefund] = useState(null);
   const [refundReason, setRefundReason] = useState('');
+  const [managerPin, setManagerPin] = useState('');
+  const [pinModalOpen, setPinModalOpen] = useState(false);
   const [restockOnRefund, setRestockOnRefund] = useState(true);
   const [refundQuantities, setRefundQuantities] = useState({});
   const [refundLoading, setRefundLoading] = useState(false);
@@ -78,7 +86,6 @@ export default function TransactionsPage({ storeInfo }) {
   const refundedCount = Number(saleSummary.refunded || 0);
   const paymentMix = saleSummary.paymentMethods || [];
   const electronicSales = paymentMix.filter((item) => ['GCASH', 'QRPH'].includes(item.method));
-  const maxPaymentCount = Math.max(...paymentMix.map((item) => item.count), 1);
   const summaryScopeLabel = startDate && endDate && startDate === endDate ? 'selected day' : 'selected period';
 
   const loadSales = async () => {
@@ -182,7 +189,7 @@ export default function TransactionsPage({ storeInfo }) {
           sale.transactionNumber,
           formatDateTime(sale.createdAt),
           sale.cashier?.fullName || sale.cashier?.username || '',
-          sale.items ? sale.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0,
+          sale.items ? formatQuantity(sale.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)) : 0,
           sale.paymentMethod,
           sale.paymentReference || sale.payments?.[0]?.referenceNo || '',
           sale.totalAmount,
@@ -211,7 +218,7 @@ export default function TransactionsPage({ storeInfo }) {
         sale.transactionNumber,
         formatDateTime(sale.createdAt),
         sale.cashier?.fullName || sale.cashier?.username || '',
-        sale.items ? sale.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0,
+        sale.items ? formatQuantity(sale.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)) : 0,
         sale.paymentMethod,
         formatCurrency(sale.totalAmount),
         sale.status,
@@ -254,15 +261,23 @@ export default function TransactionsPage({ storeInfo }) {
         return;
       }
 
+      if (user?.role === 'CASHIER' && !pinModalOpen) {
+        setPinModalOpen(true);
+        return;
+      }
+
       await api.processRefund({
         saleId: saleToRefund.id,
         reason: refundReason,
         items: itemsToRefund,
         restockItems: restockOnRefund,
+        ...(user?.role === 'CASHIER' ? { managerPin } : {}),
       });
 
       setSuccessMessage(`Refund of ${formatCurrency(refundTotal)} processed for ${saleToRefund.transactionNumber}.`);
       setRefundModalOpen(false);
+      setPinModalOpen(false);
+      setManagerPin('');
       loadSales();
     } catch (err) {
       setErrorMessage(err.message || 'Refund processing failed');
@@ -372,10 +387,6 @@ export default function TransactionsPage({ storeInfo }) {
         <div className="sales-overview-card"><span>Digital payments</span><strong>{electronicSales.reduce((sum, item) => sum + item.count, 0)}</strong><small>GCash / QRPH in {summaryScopeLabel}</small></div>
       </div>
 
-      <div className="sales-insight-strip">
-        <div><span className="eyebrow">PAYMENT METHODS · {summaryScopeLabel.toUpperCase()}</span><div className="sales-mix-bars">{paymentMix.length === 0 ? <span className="sales-insight-empty">No payment activity in the {summaryScopeLabel}.</span> : paymentMix.map((item) => <div className="sales-mix-item" key={item.method}><div><strong>{item.method}</strong><span>{item.count} txn{item.count === 1 ? '' : 's'} · {formatCurrency(item.amount)}</span></div><div className="report-progress-track"><span style={{ width: `${(item.count / maxPaymentCount) * 100}%` }} /></div></div>)}</div></div>
-      </div>
-
       {/* Transactions Table */}
       <div className="pos-panel sales-table-panel">
         <div className="sales-table-heading"><div><span className="eyebrow">TRANSACTION LEDGER</span><h2>Recent sales activity</h2></div><span className="sales-table-count">{isLoading ? 'Updating…' : `${totalSales} total records`}</span></div>
@@ -412,7 +423,7 @@ export default function TransactionsPage({ storeInfo }) {
                     </td>
                     <td>{sale.cashier?.fullName || sale.cashier?.username}</td>
                     <td style={{ textAlign: 'center' }}>
-                      {sale.items ? sale.items.reduce((sum, i) => sum + Number(i.quantity || 0), 0) : '-'}
+                      {sale.items ? formatQuantity(sale.items.reduce((sum, i) => sum + Number(i.quantity || 0), 0)) : '-'}
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <span className="badge-tag">{sale.paymentMethod}</span>
@@ -461,7 +472,7 @@ export default function TransactionsPage({ storeInfo }) {
                       >
                         Reprint Receipt
                       </button>
-                      {isAdmin && sale.status !== 'REFUNDED' && (
+                      {(isAdmin || user?.role === 'CASHIER') && sale.status !== 'REFUNDED' && (
                         <button
                           className="btn btn-secondary btn-sm"
                           style={{ color: 'var(--error)' }}
@@ -638,9 +649,8 @@ export default function TransactionsPage({ storeInfo }) {
                 <div className="refund-total-callout"><span>Refund amount</span><strong>{formatCurrency(refundTotal)}</strong></div>
 
                 <div className="form-group">
-                  <label className="field-label">Reason for Return / Refund *</label>
+                  <label className="field-label">Reason for Return / Refund (optional)</label>
                   <textarea
-                    required
                     rows="3"
                     className="form-control"
                     placeholder="e.g. Defective item, customer changed mind, wrong product scanned"
@@ -660,6 +670,7 @@ export default function TransactionsPage({ storeInfo }) {
                     Restock items back into active inventory
                   </label>
                 </div>
+
               </div>
 
               <div className="modal-footer">
@@ -669,6 +680,30 @@ export default function TransactionsPage({ storeInfo }) {
                 <button type="submit" className="btn btn-danger">
                   Confirm Refund
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {pinModalOpen && saleToRefund && (
+        <div className="modal-overlay" style={{ zIndex: 1100 }} onMouseDown={() => setPinModalOpen(false)}>
+          <div className="modal-dialog refund-pin-dialog" role="dialog" aria-modal="true" aria-labelledby="refund-pin-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title" id="refund-pin-title">Manager Approval Required</h2>
+              <button type="button" className="modal-close-btn" onClick={() => setPinModalOpen(false)} aria-label="Close">&times;</button>
+            </div>
+            <form onSubmit={handleProcessRefundSubmit}>
+              <div className="modal-body refund-pin-body">
+                <p className="refund-pin-help">Enter the Store Manager’s 6-digit PIN to authorize this refund.</p>
+                <div className="refund-pin-field">
+                  <label className="field-label" htmlFor="refund-manager-pin">Manager PIN <span aria-hidden="true">*</span></label>
+                  <input id="refund-manager-pin" type="password" inputMode="numeric" maxLength="6" pattern="[0-9]{6}" required autoFocus className="form-control" value={managerPin} onChange={(e) => setManagerPin(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="Enter 6 digits" />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setPinModalOpen(false)}>Cancel</button>
+                <button type="submit" className="btn btn-danger">Authorize Refund</button>
               </div>
             </form>
           </div>

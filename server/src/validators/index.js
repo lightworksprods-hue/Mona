@@ -55,7 +55,7 @@ const stockAdjustmentValidator = [
 
 const refundValidator = [
   body('saleId').notEmpty().withMessage('Sale ID is required'),
-  body('reason').trim().notEmpty().withMessage('Refund reason is required'),
+  body('reason').optional({ checkFalsy: true }).trim(),
   body('items').isArray({ min: 1 }).withMessage('At least one item must be refunded'),
   body('items.*.productId').notEmpty().withMessage('Each refund item must have a product ID'),
   body('items.*.quantity').isFloat({ min: 0.001 }).withMessage('Refund quantity must be greater than zero'),

@@ -288,7 +288,7 @@ model Refund {
   userId         String
   user           User          @relation(fields: [userId], references: [id])
   amount         Decimal       @db.Decimal(12, 2)
-  reason         String
+  reason         String?
   restockItems   Boolean       @default(true)
   itemsJson      Json
   createdAt      DateTime      @default(now())
@@ -312,6 +312,7 @@ model StoreSettings {
   maxProducts Int @default(0)
   maxCustomers Int @default(0)
   maxLoyaltyRewards Int @default(0)
+  refundManagerPinHash String?
   updatedAt      DateTime  @updatedAt
 
   @@map("store_settings")

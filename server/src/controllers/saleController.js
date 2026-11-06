@@ -1,4 +1,5 @@
 const prisma = require('../config/db');
+const bcrypt = require('bcryptjs');
 const { processCheckout } = require('../services/saleService');
 const { createAuditLog } = require('../services/auditService');
 const { generateRefundNumber } = require('../utils/formatters');
@@ -187,6 +188,12 @@ exports.getSales = async (req, res, next) => {
           cashier: {
             select: { id: true, fullName: true, username: true },
           },
+          items: {
+            select: { quantity: true },
+          },
+          payments: {
+            select: { referenceNo: true },
+          },
           _count: { select: { items: true, refunds: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -270,7 +277,17 @@ exports.getSaleById = async (req, res, next) => {
 // Process Refund or Return
 exports.processRefund = async (req, res, next) => {
   try {
-    const { saleId, reason, items, restockItems = true } = req.body;
+    const { saleId, reason, items, restockItems = true, managerPin } = req.body;
+
+    if (req.user.role === 'CASHIER') {
+      if (!/^\d{6}$/.test(String(managerPin || '').trim())) {
+        return res.status(403).json({ success: false, message: 'A valid 6-digit Store Manager PIN is required for cashier refunds.' });
+      }
+      const settings = await prisma.storeSettings.findFirst({ select: { refundManagerPinHash: true } });
+      if (!settings?.refundManagerPinHash || !(await bcrypt.compare(String(managerPin).trim(), settings.refundManagerPinHash))) {
+        return res.status(403).json({ success: false, message: 'Invalid Store Manager PIN.' });
+      }
+    }
 
     const sale = await prisma.sale.findFirst({
       where: { id: saleId, deletedAt: null },

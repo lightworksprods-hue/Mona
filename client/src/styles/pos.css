@@ -1240,6 +1240,8 @@ html[data-theme='dark'] .pos-lock-overlay {
 .system-limits-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .system-limits-grid > label { min-width: 0; }
 .system-limits-grid .form-control { width: 100%; min-width: 0; box-sizing: border-box; }
+.refund-approval-card .field-label { display: grid; gap: 7px; }
+.refund-approval-card .form-control { width: min(100%, 260px); box-sizing: border-box; }
 @media (max-width: 700px) { .system-limits-grid { grid-template-columns: 1fr; } }
 
 .customer-loyalty-box {
@@ -1959,6 +1961,21 @@ html[data-theme='dark'] .pos-lock-overlay {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.refund-pin-dialog { max-width: 440px; }
+.refund-pin-body { padding: 20px 22px 22px; }
+.refund-pin-help { margin: 0 0 20px; color: var(--secondary-text); line-height: 1.5; }
+.refund-pin-field { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; gap: 12px; }
+.refund-pin-field .field-label { margin: 0; white-space: nowrap; color: var(--primary-text); }
+.refund-pin-field .form-control { width: 100%; min-width: 0; box-sizing: border-box; }
+.refund-pin-dialog .modal-footer { padding: 14px 22px; }
+.refund-pin-dialog .modal-footer .btn { min-width: 100px; }
+
+@media (max-width: 480px) {
+  .refund-pin-field { grid-template-columns: 1fr; gap: 6px; }
+  .refund-pin-dialog .modal-footer { flex-wrap: wrap; }
+  .refund-pin-dialog .modal-footer .btn { flex: 1; }
 }
 
 .logout-dialog { max-width: 430px; border: 1px solid var(--border-color); }

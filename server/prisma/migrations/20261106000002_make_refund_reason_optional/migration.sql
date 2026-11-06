@@ -1,0 +1,1 @@
+ALTER TABLE "refunds" ALTER COLUMN "reason" DROP NOT NULL;

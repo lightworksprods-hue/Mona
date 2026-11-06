@@ -19,6 +19,7 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
     maxProducts: '0',
     maxCustomers: '0',
     maxLoyaltyRewards: '0',
+    refundManagerPin: '',
   });
 
   // User Management State
@@ -56,6 +57,7 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
         maxProducts: String(storeInfo.maxProducts ?? 0),
         maxCustomers: String(storeInfo.maxCustomers ?? 0),
         maxLoyaltyRewards: String(storeInfo.maxLoyaltyRewards ?? 0),
+        refundManagerPin: '',
       });
     }
   }, [storeInfo]);
@@ -417,6 +419,16 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
                 <button type="button" className="btn btn-secondary" onClick={handleLimitsSubmit}>Save admin limits</button>
               </div>
             )}
+
+            <div className="system-limits-card refund-approval-card">
+              <div>
+                <strong>Refund approval</strong>
+                <p>Cashiers must enter this 6-digit PIN before processing a refund.</p>
+              </div>
+              <label className="field-label">Store Manager PIN
+                <input type="password" inputMode="numeric" maxLength="6" pattern="[0-9]{6}" className="form-control" value={formData.refundManagerPin} onChange={(e) => setFormData({ ...formData, refundManagerPin: e.target.value.replace(/\D/g, '').slice(0, 6) })} placeholder="Enter 6 digits" />
+              </label>
+            </div>
 
             <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }}>
               Save Settings

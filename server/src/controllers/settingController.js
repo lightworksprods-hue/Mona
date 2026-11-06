@@ -1,4 +1,5 @@
 const prisma = require('../config/db');
+const bcrypt = require('bcryptjs');
 
 // Get current store settings
 exports.getSettings = async (req, res, next) => {
@@ -31,7 +32,8 @@ exports.getSettings = async (req, res, next) => {
         },
       });
     }
-    res.json({ success: true, data: settings });
+    const { refundManagerPinHash, ...safeSettings } = settings;
+    res.json({ success: true, data: safeSettings });
   } catch (error) {
     next(error);
   }
@@ -81,7 +83,7 @@ exports.updateSystemStatus = async (req, res, next) => {
 // Update store settings (Admin only)
 exports.updateSettings = async (req, res, next) => {
   try {
-    const { storeName, storeAddress, phone, taxRate, currencySymbol, receiptFooter, receiptPaperWidth, loyaltyPointsPerHundred } = req.body;
+    const { storeName, storeAddress, phone, taxRate, currencySymbol, receiptFooter, receiptPaperWidth, loyaltyPointsPerHundred, refundManagerPin } = req.body;
 
     let settings = await prisma.storeSettings.findFirst();
     const data = {};
@@ -93,6 +95,12 @@ exports.updateSettings = async (req, res, next) => {
     if (receiptFooter !== undefined) data.receiptFooter = receiptFooter.trim();
     if (receiptPaperWidth !== undefined && ['58mm', '80mm', 'A4'].includes(receiptPaperWidth)) data.receiptPaperWidth = receiptPaperWidth;
     if (loyaltyPointsPerHundred !== undefined) data.loyaltyPointsPerHundred = Math.max(0, parseFloat(loyaltyPointsPerHundred) || 0);
+    if (refundManagerPin !== undefined && String(refundManagerPin).trim()) {
+      if (!/^\d{6}$/.test(String(refundManagerPin).trim())) {
+        return res.status(400).json({ success: false, message: 'Refund approval PIN must contain exactly 6 digits.' });
+      }
+      data.refundManagerPinHash = await bcrypt.hash(String(refundManagerPin).trim(), 10);
+    }
 
     if (settings) {
       settings = await prisma.storeSettings.update({
@@ -103,7 +111,8 @@ exports.updateSettings = async (req, res, next) => {
       settings = await prisma.storeSettings.create({ data });
     }
 
-    res.json({ success: true, message: 'Store settings saved successfully.', data: settings });
+    const { refundManagerPinHash, ...safeSettings } = settings;
+    res.json({ success: true, message: 'Store settings saved successfully.', data: safeSettings });
   } catch (error) {
     next(error);
   }

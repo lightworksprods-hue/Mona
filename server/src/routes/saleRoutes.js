@@ -23,7 +23,7 @@ router.get('/:id', authenticate, requireRole('ADMIN', 'CASHIER'), saleController
 router.post(
   '/refund',
   authenticate,
-  requireRole('ADMIN'),
+  requireRole('ADMIN', 'CASHIER'),
   refundValidator,
   validate,
   saleController.processRefund
