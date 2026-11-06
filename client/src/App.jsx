@@ -47,6 +47,9 @@ export default function App() {
       } else if (event.key.toLowerCase() === 'a') {
         event.preventDefault();
         setActiveTab('cash');
+      } else if (event.key.toLowerCase() === 't') {
+        event.preventDefault();
+        setActiveTab('transactions');
       } else if (event.key.toLowerCase() === 'l') {
         event.preventDefault();
         setTheme((current) => current === 'light' ? 'dark' : 'light');
@@ -98,7 +101,7 @@ export default function App() {
   }, [user, isAdmin]);
 
   useEffect(() => {
-    if (user && !isAdmin && !['pos', 'products', 'cash'].includes(activeTab)) {
+    if (user && !isAdmin && !['pos', 'products', 'cash', 'transactions'].includes(activeTab)) {
       setActiveTab(cashDrawerOpen === false ? 'cash' : 'pos');
     }
   }, [user, isAdmin, activeTab, cashDrawerOpen]);
@@ -210,7 +213,7 @@ export default function App() {
           )}
           {activeTab === 'products' && <ProductsPage />}
           {activeTab === 'inventory' && isAdmin && <InventoryPage />}
-          {activeTab === 'transactions' && isAdmin && <TransactionsPage storeInfo={storeInfo} />}
+          {activeTab === 'transactions' && user && <TransactionsPage storeInfo={storeInfo} />}
           {activeTab === 'cash' && <CashDrawerPage onSessionChange={setCashDrawerOpen} />}
           {activeTab === 'reports' && isAdmin && <ReportsPage />}
           {activeTab === 'settings' && isAdmin && (

@@ -9,15 +9,15 @@ const { checkoutValidator, refundValidator } = require('../validators');
 router.post('/checkout', authenticate, checkoutValidator, validate, saleController.checkout);
 
 // Soft-archive all transaction and inventory movement history (cashier/admin).
-router.delete('/all', authenticate, requireRole('ADMIN', 'CASHIER'), saleController.deleteAllTransactions);
+router.delete('/all', authenticate, requireRole('ADMIN'), saleController.deleteAllTransactions);
 router.get('/archived', authenticate, requireRole('SUPERADMIN'), saleController.getArchivedTransactions);
 router.patch('/restore-all', authenticate, requireRole('SUPERADMIN'), saleController.restoreAllTransactions);
 
 // Transaction History
-router.get('/', authenticate, requireRole('ADMIN'), saleController.getSales);
+router.get('/', authenticate, requireRole('ADMIN', 'CASHIER'), saleController.getSales);
 
 // Sale Receipt / Details
-router.get('/:id', authenticate, requireRole('ADMIN'), saleController.getSaleById);
+router.get('/:id', authenticate, requireRole('ADMIN', 'CASHIER'), saleController.getSaleById);
 
 // Refunds are an administrator-only action.
 router.post(
