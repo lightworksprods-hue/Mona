@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import AlertToast from '../components/AlertToast';
-import { formatCurrency, formatDateTime } from '../utils/formatters';
+import { formatCurrency } from '../utils/formatters';
 import { useAuth } from '../context/AuthContext';
 
 export default function SettingsPage({ storeInfo, onStoreUpdate }) {
   const { isSuperAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState('store'); // 'store' | 'users' | 'devices' | 'customers' | 'rewards' | 'audit'
+  const [activeTab, setActiveTab] = useState('store'); // 'store' | 'users' | 'devices' | 'customers' | 'rewards'
   const [formData, setFormData] = useState({
     storeName: '',
     storeAddress: '',
@@ -38,9 +38,6 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
     role: 'CASHIER',
   });
 
-  // Audit Logs State
-  const [auditLogs, setAuditLogs] = useState([]);
-
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -67,7 +64,6 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
     if (activeTab === 'devices') loadDevices();
     if (activeTab === 'customers') loadCustomers();
     if (activeTab === 'rewards') loadRewards();
-    if (activeTab === 'audit') loadAuditLogs();
   }, [activeTab]);
 
   const loadUsers = async () => {
@@ -164,15 +160,6 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
       loadDevices();
     } catch (err) {
       setErrorMessage(err.message || 'Failed to update device');
-    }
-  };
-
-  const loadAuditLogs = async () => {
-    try {
-      const res = await api.getAuditLogs();
-      setAuditLogs(res.data?.logs || []);
-    } catch (err) {
-      console.error(err);
     }
   };
 
@@ -282,12 +269,6 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
             onClick={() => setActiveTab('rewards')}
           >
             Rewards Catalog
-          </button>
-          <button
-            className={`btn ${activeTab === 'audit' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-            onClick={() => setActiveTab('audit')}
-          >
-            Security Audit Trail
           </button>
         </div>
       </div>
@@ -681,48 +662,6 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
         </div>
       )}
 
-      {/* TAB 4: AUDIT LOGS */}
-      {activeTab === 'audit' && (
-        <div className="pos-panel">
-          <div className="pos-panel-header">
-            <span className="pos-panel-title">Security & Transaction Audit Logs</span>
-          </div>
-          <div className="table-container">
-            <table className="pos-table">
-              <thead>
-                <tr>
-                  <th>Timestamp</th>
-                  <th>User</th>
-                  <th>Action</th>
-                  <th>Entity</th>
-                  <th>IP Address</th>
-                </tr>
-              </thead>
-              <tbody>
-                {auditLogs.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" style={{ textAlign: 'center', padding: '24px' }}>
-                      No audit events logged.
-                    </td>
-                  </tr>
-                ) : (
-                  auditLogs.map((log) => (
-                    <tr key={log.id}>
-                      <td style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>{formatDateTime(log.createdAt)}</td>
-                      <td>{log.user ? `${log.user.fullName} (${log.user.username})` : 'System'}</td>
-                      <td>
-                        <span className="badge-tag">{log.action}</span>
-                      </td>
-                      <td>{log.entity}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{log.ipAddress || '127.0.0.1'}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

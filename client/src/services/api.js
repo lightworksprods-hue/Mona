@@ -84,7 +84,6 @@ export const api = {
   // Cash drawer reconciliation
   getCashCurrent: () => request('/cash/current'),
   getCashHistory: () => request('/cash/history'),
-  openCashDrawer: () => request('/cash/open-hardware', { method: 'POST' }),
   openCashSession: (payload) => request('/cash/open', { method: 'POST', body: JSON.stringify(payload) }),
   addCashMovement: (payload) => request('/cash/movement', { method: 'POST', body: JSON.stringify(payload) }),
   closeCashSession: (payload) => request('/cash/close', { method: 'POST', body: JSON.stringify(payload) }),
@@ -118,8 +117,4 @@ export const api = {
   updateSettings: (payload) => request('/settings', { method: 'PUT', body: JSON.stringify(payload) }),
   updateSystemStatus: (systemActive) => request('/system/status', { method: 'PUT', body: JSON.stringify({ systemActive }) }),
   updateLimits: (payload) => request('/settings/limits', { method: 'PUT', body: JSON.stringify(payload) }),
-  getAuditLogs: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return request(`/audit-logs${qs ? `?${qs}` : ''}`);
-  },
 };

@@ -556,11 +556,6 @@ export default function CounterPOSPage({ storeInfo, cashDrawerOpen = true, onOpe
       const res = await api.checkout(payload);
 
       if (res.success && res.data) {
-        if (paymentMethod === 'CASH') {
-          // Do not fail a completed sale if the printer is offline. The cashier
-          // can use the manual button on the Cash Drawer page to retry.
-          api.openCashDrawer().catch(() => {});
-        }
         setCompletedSale(res.data);
         // Reset current counter state
         setCart([]);

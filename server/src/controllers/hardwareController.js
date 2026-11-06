@@ -20,21 +20,6 @@ function requireBridgeToken(req, res) {
   return true;
 }
 
-exports.requestOpenDrawer = async (req, res, next) => {
-  try {
-    if (!bridgeToken()) {
-      return res.status(503).json({ success: false, code: 'HARDWARE_BRIDGE_NOT_CONFIGURED', message: 'The cash drawer bridge is not configured.' });
-    }
-
-    const command = await prisma.hardwareCommand.create({
-      data: { type: 'OPEN_DRAWER', requestedBy: req.user.id },
-    });
-    res.status(202).json({ success: true, message: 'Cash drawer command sent to the store computer.', data: { commandId: command.id } });
-  } catch (error) {
-    next(error);
-  }
-};
-
 exports.getNextCommand = async (req, res, next) => {
   try {
     if (!requireBridgeToken(req, res)) return;

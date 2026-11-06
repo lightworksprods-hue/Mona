@@ -1,5 +1,4 @@
 const prisma = require('../config/db');
-const { createAuditLog } = require('../services/auditService');
 
 // Get current store settings
 exports.getSettings = async (req, res, next) => {
@@ -59,15 +58,6 @@ exports.updateLimits = async (req, res, next) => {
       ? await prisma.storeSettings.update({ where: { id: settings.id }, data })
       : await prisma.storeSettings.create({ data });
 
-    await createAuditLog({
-      userId: req.user.id,
-      action: 'LIMITS_UPDATED',
-      entity: 'StoreSettings',
-      entityId: settings.id,
-      details: data,
-      ipAddress: req.ip,
-    });
-
     res.json({ success: true, message: 'System limits saved.', data: settings });
   } catch (error) {
     next(error);
@@ -82,14 +72,6 @@ exports.updateSystemStatus = async (req, res, next) => {
       ? await prisma.storeSettings.update({ where: { id: settings.id }, data: { systemActive } })
       : await prisma.storeSettings.create({ data: { systemActive } });
 
-    await createAuditLog({
-      userId: req.user.id,
-      action: systemActive ? 'SYSTEM_ACTIVATED' : 'SYSTEM_DEACTIVATED',
-      entity: 'StoreSettings',
-      entityId: settings.id,
-      details: { systemActive },
-      ipAddress: req.ip,
-    });
     res.json({ success: true, message: systemActive ? 'POS system activated.' : 'POS system deactivated.', data: settings });
   } catch (error) {
     next(error);
@@ -121,58 +103,7 @@ exports.updateSettings = async (req, res, next) => {
       settings = await prisma.storeSettings.create({ data });
     }
 
-    await createAuditLog({
-      userId: req.user.id,
-      action: 'SETTINGS_UPDATED',
-      entity: 'StoreSettings',
-      entityId: settings.id,
-      details: data,
-      ipAddress: req.ip,
-    });
-
     res.json({ success: true, message: 'Store settings saved successfully.', data: settings });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// View audit logs (Admin only)
-exports.getAuditLogs = async (req, res, next) => {
-  try {
-    const { limit = 50, page = 1 } = req.query;
-    const take = Math.min(parseInt(limit, 10) || 50, 100);
-    const skip = ((parseInt(page, 10) || 1) - 1) * take;
-    const where = req.user.role === 'SUPERADMIN'
-      ? undefined
-      : {
-          OR: [
-            { userId: null },
-            { user: { role: { not: 'SUPERADMIN' } } },
-          ],
-        };
-
-    const [logs, total] = await Promise.all([
-      prisma.auditLog.findMany({
-        where,
-        include: {
-          user: { select: { fullName: true, username: true, role: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-        take,
-        skip,
-      }),
-      prisma.auditLog.count({ where }),
-    ]);
-
-    res.json({
-      success: true,
-      data: {
-        logs,
-        total,
-        page: parseInt(page, 10) || 1,
-        pages: Math.ceil(total / take),
-      },
-    });
   } catch (error) {
     next(error);
   }

@@ -65,7 +65,6 @@ model User {
   sales              Sale[]              @relation("CashierSales")
   inventoryMovements InventoryMovement[]
   refunds            Refund[]
-  auditLogs          AuditLog[]
   cashSessions       CashSession[]       @relation("CashSessions")
   cashMovements      CashMovement[]
 
@@ -318,23 +317,6 @@ model StoreSettings {
   @@map("store_settings")
 }
 
-model AuditLog {
-  id         String    @id @default(uuid())
-  userId     String?
-  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action     String
-  entity     String
-  entityId   String?
-  details    Json?
-  ipAddress  String?
-  createdAt  DateTime  @default(now())
-
-  @@index([action])
-  @@index([entity])
-  @@index([createdAt])
-  @@map("audit_logs")
-}
-
 model CashSession {
   id            String            @id @default(uuid())
   cashierId     String
@@ -367,18 +349,4 @@ model CashMovement {
 
   @@index([sessionId, createdAt])
   @@map("cash_movements")
-}
-
-model HardwareCommand {
-  id          String    @id @default(uuid())
-  type        String
-  status      String    @default("PENDING")
-  requestedBy String?
-  requestedAt DateTime  @default(now())
-  claimedAt   DateTime?
-  completedAt DateTime?
-  result      String?
-
-  @@index([status, requestedAt])
-  @@map("hardware_commands")
 }

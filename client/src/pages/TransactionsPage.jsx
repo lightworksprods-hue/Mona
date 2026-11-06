@@ -305,7 +305,7 @@ export default function TransactionsPage({ storeInfo }) {
           <input
             type="text"
             className="search-input"
-            placeholder="Transaction number..."
+            placeholder="Transaction number or reference ID..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
           />

@@ -137,7 +137,12 @@ exports.getSales = async (req, res, next) => {
     const where = { deletedAt: null };
 
     if (search && search.trim()) {
-      where.transactionNumber = { contains: search.trim(), mode: 'insensitive' };
+      const searchValue = search.trim();
+      where.OR = [
+        { transactionNumber: { contains: searchValue, mode: 'insensitive' } },
+        { paymentReference: { contains: searchValue, mode: 'insensitive' } },
+        { payments: { some: { referenceNo: { contains: searchValue, mode: 'insensitive' } } } },
+      ];
     }
     if (paymentMethod) {
       where.paymentMethod = paymentMethod;

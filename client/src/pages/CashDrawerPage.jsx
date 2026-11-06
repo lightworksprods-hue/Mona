@@ -31,7 +31,6 @@ export default function CashDrawerPage({ onSessionChange }) {
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [openingHardware, setOpeningHardware] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
   const loadData = async () => {
@@ -104,19 +103,6 @@ export default function CashDrawerPage({ onSessionChange }) {
     });
   };
 
-  const openPhysicalDrawer = async () => {
-    setOpeningHardware(true);
-    setMessage({ type: '', text: '' });
-    try {
-      await api.openCashDrawer();
-      setMessage({ type: 'success', text: 'Open command sent to the store POS computer.' });
-    } catch (error) {
-      setMessage({ type: 'error', text: friendlyCashDrawerError(error, 'Unable to open the cash drawer.') });
-    } finally {
-      setOpeningHardware(false);
-    }
-  };
-
   if (loading) return <div className="page-state">Loading cash drawer...</div>;
 
   return (
@@ -128,9 +114,6 @@ export default function CashDrawerPage({ onSessionChange }) {
           <p>Track the money in the drawer from opening float to closing count.</p>
         </div>
         <div className="cash-drawer-header-actions">
-          <button type="button" className="btn btn-secondary" onClick={openPhysicalDrawer} disabled={openingHardware}>
-            {openingHardware ? 'Opening...' : 'Open cash drawer'}
-          </button>
           <span className={`status-pill ${sessionOpen ? 'status-open' : 'status-closed'}`}>
             {sessionOpen ? 'Shift started' : 'Shift not started'}
           </span>

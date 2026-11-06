@@ -16,7 +16,4 @@ router.put('/settings', authenticate, requireRole('ADMIN'), settingController.up
 router.put('/system/status', authenticate, requireRole('SUPERADMIN'), settingController.updateSystemStatus);
 router.put('/settings/limits', authenticate, requireRole('SUPERADMIN'), settingController.updateLimits);
 
-// Audit logs (Admin only)
-router.get('/audit-logs', authenticate, requireRole('ADMIN'), settingController.getAuditLogs);
-
 module.exports = router;

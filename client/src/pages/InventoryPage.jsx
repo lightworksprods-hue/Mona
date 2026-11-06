@@ -5,6 +5,7 @@ import { formatCurrency, formatDateTime } from '../utils/formatters';
 import { downloadCsv, printReport } from '../utils/reportExport';
 
 const LOW_STOCK_ITEMS_PER_PAGE = 10;
+const ALL_PRODUCTS_PER_PAGE = 10;
 
 export default function InventoryPage() {
   const [summary, setSummary] = useState(null);
@@ -18,6 +19,7 @@ export default function InventoryPage() {
   const [productCategory, setProductCategory] = useState('ALL');
   const [lowStockPage, setLowStockPage] = useState(1);
   const [lowStockFilter, setLowStockFilter] = useState('ALL');
+  const [allProductsPage, setAllProductsPage] = useState(1);
 
   // Stock Adjustment Form
   const [adjustmentData, setAdjustmentData] = useState({
@@ -56,7 +58,7 @@ export default function InventoryPage() {
 
   const loadProducts = async () => {
     try {
-      const res = await api.getProducts({ activeOnly: true });
+      const res = await api.getProducts();
       setProducts(res.data || []);
       if (res.data?.length > 0 && !adjustmentData.productId) {
         setAdjustmentData((prev) => ({ ...prev, productId: res.data[0].id }));
@@ -107,6 +109,11 @@ export default function InventoryPage() {
   const visibleLowStockItems = filteredLowStockItems.slice(
     (lowStockPage - 1) * LOW_STOCK_ITEMS_PER_PAGE,
     lowStockPage * LOW_STOCK_ITEMS_PER_PAGE,
+  );
+  const allProductsTotalPages = Math.max(1, Math.ceil(products.length / ALL_PRODUCTS_PER_PAGE));
+  const visibleAllProducts = products.slice(
+    (allProductsPage - 1) * ALL_PRODUCTS_PER_PAGE,
+    allProductsPage * ALL_PRODUCTS_PER_PAGE,
   );
 
   const exportInventoryCsv = () => {
@@ -197,6 +204,58 @@ export default function InventoryPage() {
 
       {/* TAB 1: LOW STOCK ALERTS TABLE */}
       {activeTab === 'summary' && (
+        <>
+        <div className="pos-panel">
+          <div className="pos-panel-header">
+            <span className="pos-panel-title">All Products & Current Stock</span>
+            <span style={{ color: 'var(--secondary-text)', fontSize: '12px' }}>{products.length} products</span>
+          </div>
+          <div className="table-container">
+            <table className="pos-table">
+              <thead>
+                <tr>
+                  <th>Product Name</th>
+                  <th>SKU</th>
+                  <th>Barcode</th>
+                  <th style={{ textAlign: 'center' }}>Current Stock</th>
+                  <th style={{ textAlign: 'center' }}>Minimum Level</th>
+                  <th style={{ textAlign: 'center' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleAllProducts.length === 0 ? (
+                  <tr><td colSpan="6" style={{ textAlign: 'center', padding: '24px' }}>No products found.</td></tr>
+                ) : visibleAllProducts.map((product) => (
+                  <tr key={product.id}>
+                    <td><strong>{product.name}</strong><div style={{ fontSize: '11px', color: 'var(--secondary-text)' }}>{product.category?.name || 'Uncategorized'}</div></td>
+                    <td style={{ fontFamily: 'var(--font-mono)' }}>{product.sku}</td>
+                    <td style={{ fontFamily: 'var(--font-mono)' }}>{product.barcode}</td>
+                    <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{product.stockQuantity} {product.unit}</td>
+                    <td style={{ textAlign: 'center' }}>{product.minStockLevel} {product.unit}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span className="badge-tag" style={{
+                        backgroundColor: !product.isActive ? 'var(--light-gray)' : product.stockQuantity <= 0 ? 'var(--error-bg)' : product.stockQuantity <= product.minStockLevel ? 'var(--warning-bg)' : 'var(--light-pink)',
+                        color: !product.isActive ? 'var(--secondary-text)' : product.stockQuantity <= 0 ? 'var(--error)' : product.stockQuantity <= product.minStockLevel ? 'var(--warning)' : 'var(--dark-pink)',
+                      }}>
+                        {!product.isActive ? 'INACTIVE' : product.stockQuantity <= 0 ? 'OUT OF STOCK' : product.stockQuantity <= product.minStockLevel ? 'LOW STOCK' : 'IN STOCK'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {products.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', borderTop: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
+              <span style={{ color: 'var(--secondary-text)', fontSize: '13px' }}>Showing {(allProductsPage - 1) * ALL_PRODUCTS_PER_PAGE + 1}-{Math.min(allProductsPage * ALL_PRODUCTS_PER_PAGE, products.length)} of {products.length} products</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAllProductsPage((page) => Math.max(1, page - 1))} disabled={allProductsPage === 1}>Previous</button>
+                <span style={{ fontSize: '13px', minWidth: '76px', textAlign: 'center' }}>Page {allProductsPage} of {allProductsTotalPages}</span>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAllProductsPage((page) => Math.min(allProductsTotalPages, page + 1))} disabled={allProductsPage === allProductsTotalPages}>Next</button>
+              </div>
+            </div>
+          )}
+        </div>
         <div className="pos-panel">
           <div className="pos-panel-header">
             <span className="pos-panel-title">Low & Depleted Stock Items</span>
@@ -292,6 +351,7 @@ export default function InventoryPage() {
             </div>
           )}
         </div>
+        </>
       )}
 
       {/* TAB 2: AUDIT TRAIL OF MOVEMENTS */}
@@ -359,16 +419,17 @@ export default function InventoryPage() {
 
       {/* TAB 3: ADJUST STOCK FORM */}
       {activeTab === 'adjust' && (
-        <div className="pos-panel" style={{ maxWidth: '600px', margin: '0 auto', width: '100%' }}>
+        <div className="pos-panel" style={{ maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
           <div className="pos-panel-header">
             <div>
-              <span className="pos-panel-title">Update Stock</span>
+              <span className="pos-panel-title">Adjust Stock</span>
               <div style={{ marginTop: '4px', color: 'var(--secondary-text)', fontSize: '12px' }}>
-                Add deliveries or record stock changes.
+                Select a product, choose an action, and record the stock change.
               </div>
             </div>
           </div>
-          <form onSubmit={handleAdjustSubmit} style={{ padding: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', padding: '20px' }}>
+          <form onSubmit={handleAdjustSubmit} style={{ alignSelf: 'start', position: 'sticky', top: '16px', padding: '18px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', background: 'var(--surface-color)' }}>
             <div className="form-group">
               <label className="field-label">Product *</label>
               <div className="inventory-product-filters">
@@ -447,6 +508,46 @@ export default function InventoryPage() {
               Save Stock Update
             </button>
           </form>
+          <div style={{ padding: '0 0 0' }}>
+            <div className="pos-panel-header" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+              <span className="pos-panel-title">All Products & Current Stock</span>
+            </div>
+            <div className="table-container" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+              <table className="pos-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th style={{ textAlign: 'center' }}>Current Stock</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAdjustmentProducts.map((product) => (
+                    <tr
+                      key={product.id}
+                      onClick={() => setAdjustmentData((previous) => ({ ...previous, productId: product.id }))}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setAdjustmentData((previous) => ({ ...previous, productId: product.id }));
+                        }
+                      }}
+                      tabIndex="0"
+                      role="button"
+                      style={{
+                        cursor: 'pointer',
+                        backgroundColor: adjustmentData.productId === product.id ? 'var(--light-pink)' : undefined,
+                      }}
+                      title="Select this product for stock adjustment"
+                    >
+                      <td><strong>{product.name}</strong><div style={{ fontSize: '11px', color: 'var(--secondary-text)' }}>{product.category?.name || 'Uncategorized'}</div></td>
+                      <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{product.stockQuantity} {product.unit}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          </div>
         </div>
       )}
     </div>
