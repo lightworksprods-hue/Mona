@@ -516,6 +516,13 @@ body {
 .cash-message-card p { margin: 2px 0 0; color: inherit; font-weight: 600; line-height: 1.45; }
 .cash-message-card small { display: block; margin-top: 4px; color: var(--secondary-text); font-size: 11px; font-weight: 500; }
 .cash-open-card { padding: 0 18px 18px; }
+.cash-step-card { overflow: hidden; }
+.cash-step-heading { display: flex; align-items: flex-start; gap: 12px; padding: 18px; border-bottom: 1px solid var(--border-color); background: linear-gradient(135deg, var(--soft-pink-bg), var(--white)); }
+.cash-step-heading h2 { margin: 3px 0 4px; color: var(--text-color); font-size: 18px; }
+.cash-step-heading p:not(.eyebrow) { margin: 0; color: var(--secondary-text); font-size: 12px; line-height: 1.45; }
+.cash-step-number { display: grid; place-items: center; width: 30px; height: 30px; flex: 0 0 30px; border-radius: 50%; color: var(--white); background: var(--pink); font-weight: 800; }
+.cash-step-note { margin: 0 18px 12px; padding: 10px 12px; border-radius: 8px; background: var(--soft-pink-bg); color: var(--secondary-text); font-size: 12px; line-height: 1.45; }
+.cash-step-note strong { color: var(--dark-pink); }
 .cash-form-row { display: grid; grid-template-columns: minmax(150px, .7fr) minmax(220px, 1.5fr) auto; align-items: end; gap: 14px; }
 .cash-form-row label, .cash-form-stack label { display: grid; gap: 7px; color: var(--secondary-text); font-size: 12px; font-weight: 700; }
 .inventory-product-filters { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(150px, 1fr); gap: 8px; margin-bottom: 7px; }
@@ -1230,7 +1237,10 @@ html[data-theme='dark'] .pos-lock-overlay {
 
 .system-limits-card { display: grid; gap: 14px; margin-top: 16px; padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--soft-pink-bg); }
 .system-limits-card p { margin: 5px 0 0; color: var(--secondary-text); font-size: 12px; line-height: 1.45; }
-.system-limits-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.system-limits-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.system-limits-grid > label { min-width: 0; }
+.system-limits-grid .form-control { width: 100%; min-width: 0; box-sizing: border-box; }
+@media (max-width: 700px) { .system-limits-grid { grid-template-columns: 1fr; } }
 
 .customer-loyalty-box {
   display: grid;

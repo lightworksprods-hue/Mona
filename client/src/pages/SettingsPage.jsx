@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import AlertToast from '../components/AlertToast';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, formatDateTime } from '../utils/formatters';
 import { useAuth } from '../context/AuthContext';
 
 export default function SettingsPage({ storeInfo, onStoreUpdate }) {
   const { isSuperAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState('store'); // 'store' | 'users' | 'devices' | 'customers' | 'rewards'
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('mona-settings-tab') || 'store'); // 'store' | 'users' | 'devices' | 'customers' | 'rewards'
   const [formData, setFormData] = useState({
     storeName: '',
     storeAddress: '',
@@ -27,6 +27,7 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
   const [customers, setCustomers] = useState([]);
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerForm, setCustomerForm] = useState({ fullName: '', phone: '' });
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [products, setProducts] = useState([]);
   const [rewards, setRewards] = useState([]);
   const [rewardForm, setRewardForm] = useState({ productId: '', pointsCost: '' });
@@ -60,6 +61,8 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
   }, [storeInfo]);
 
   useEffect(() => {
+    localStorage.setItem('mona-settings-tab', activeTab);
+    if (isSuperAdmin && !['store', 'customers'].includes(activeTab)) setActiveTab('store');
     if (activeTab === 'users') loadUsers();
     if (activeTab === 'devices') loadDevices();
     if (activeTab === 'customers') loadCustomers();
@@ -246,30 +249,30 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
           >
             Store Information
           </button>
-          <button
+          {!isSuperAdmin && <button
             className={`btn ${activeTab === 'users' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
             onClick={() => setActiveTab('users')}
           >
             User Accounts
-          </button>
-          <button
+          </button>}
+          {!isSuperAdmin && <button
             className={`btn ${activeTab === 'devices' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
             onClick={() => setActiveTab('devices')}
           >
             Authorized Devices
-          </button>
+          </button>}
           <button
             className={`btn ${activeTab === 'customers' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
             onClick={() => setActiveTab('customers')}
           >
             Customers & Loyalty
           </button>
-          <button
+          {!isSuperAdmin && <button
             className={`btn ${activeTab === 'rewards' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
             onClick={() => setActiveTab('rewards')}
           >
             Rewards Catalog
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -538,25 +541,11 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
               <span className="pos-panel-title">Customers & Loyalty Points</span>
               <p>View customers identified by phone number, their points balance, and spending.</p>
             </div>
-            <button className="btn btn-secondary btn-sm" onClick={() => loadCustomers()}>Refresh</button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn btn-secondary btn-sm" onClick={() => loadCustomers()}>Refresh</button>
+              <button className="btn btn-primary btn-sm" onClick={() => setCustomerModalOpen(true)}>Add Customer</button>
+            </div>
           </div>
-          <form className="customer-create-row" onSubmit={handleCreateCustomer}>
-            <input
-              className="form-control"
-              placeholder="Customer name (optional)"
-              value={customerForm.fullName}
-              onChange={(e) => setCustomerForm({ ...customerForm, fullName: e.target.value })}
-            />
-            <input
-              className="form-control"
-              type="tel"
-              required
-              placeholder="Phone number"
-              value={customerForm.phone}
-              onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
-            />
-            <button className="btn btn-primary" type="submit">Add Customer</button>
-          </form>
           <div className="customer-search-row">
             <input
               className="form-control"
@@ -583,6 +572,31 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {customerModalOpen && activeTab === 'customers' && (
+        <div className="modal-overlay" onMouseDown={() => setCustomerModalOpen(false)}>
+          <div className="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="add-customer-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title" id="add-customer-title">Add Customer</h2>
+              <button type="button" className="modal-close-btn" onClick={() => setCustomerModalOpen(false)} aria-label="Close">×</button>
+            </div>
+            <form onSubmit={(event) => { handleCreateCustomer(event); setCustomerModalOpen(false); }} style={{ padding: '18px' }}>
+              <div className="form-group">
+                <label className="field-label">Customer name <span className="optional-label">(optional)</span></label>
+                <input className="form-control" value={customerForm.fullName} onChange={(e) => setCustomerForm({ ...customerForm, fullName: e.target.value })} autoFocus />
+              </div>
+              <div className="form-group">
+                <label className="field-label">Phone number *</label>
+                <input className="form-control" type="tel" required value={customerForm.phone} onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setCustomerModalOpen(false)}>Cancel</button>
+                <button className="btn btn-primary" type="submit">Save Customer</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

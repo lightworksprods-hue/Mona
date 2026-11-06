@@ -5,7 +5,6 @@ import { formatCurrency, formatDateTime } from '../utils/formatters';
 import { downloadCsv, printReport } from '../utils/reportExport';
 
 const LOW_STOCK_ITEMS_PER_PAGE = 10;
-const ALL_PRODUCTS_PER_PAGE = 10;
 
 export default function InventoryPage() {
   const [summary, setSummary] = useState(null);
@@ -19,7 +18,6 @@ export default function InventoryPage() {
   const [productCategory, setProductCategory] = useState('ALL');
   const [lowStockPage, setLowStockPage] = useState(1);
   const [lowStockFilter, setLowStockFilter] = useState('ALL');
-  const [allProductsPage, setAllProductsPage] = useState(1);
 
   // Stock Adjustment Form
   const [adjustmentData, setAdjustmentData] = useState({
@@ -109,11 +107,6 @@ export default function InventoryPage() {
   const visibleLowStockItems = filteredLowStockItems.slice(
     (lowStockPage - 1) * LOW_STOCK_ITEMS_PER_PAGE,
     lowStockPage * LOW_STOCK_ITEMS_PER_PAGE,
-  );
-  const allProductsTotalPages = Math.max(1, Math.ceil(products.length / ALL_PRODUCTS_PER_PAGE));
-  const visibleAllProducts = products.slice(
-    (allProductsPage - 1) * ALL_PRODUCTS_PER_PAGE,
-    allProductsPage * ALL_PRODUCTS_PER_PAGE,
   );
 
   const exportInventoryCsv = () => {
@@ -205,57 +198,6 @@ export default function InventoryPage() {
       {/* TAB 1: LOW STOCK ALERTS TABLE */}
       {activeTab === 'summary' && (
         <>
-        <div className="pos-panel">
-          <div className="pos-panel-header">
-            <span className="pos-panel-title">All Products & Current Stock</span>
-            <span style={{ color: 'var(--secondary-text)', fontSize: '12px' }}>{products.length} products</span>
-          </div>
-          <div className="table-container">
-            <table className="pos-table">
-              <thead>
-                <tr>
-                  <th>Product Name</th>
-                  <th>SKU</th>
-                  <th>Barcode</th>
-                  <th style={{ textAlign: 'center' }}>Current Stock</th>
-                  <th style={{ textAlign: 'center' }}>Minimum Level</th>
-                  <th style={{ textAlign: 'center' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleAllProducts.length === 0 ? (
-                  <tr><td colSpan="6" style={{ textAlign: 'center', padding: '24px' }}>No products found.</td></tr>
-                ) : visibleAllProducts.map((product) => (
-                  <tr key={product.id}>
-                    <td><strong>{product.name}</strong><div style={{ fontSize: '11px', color: 'var(--secondary-text)' }}>{product.category?.name || 'Uncategorized'}</div></td>
-                    <td style={{ fontFamily: 'var(--font-mono)' }}>{product.sku}</td>
-                    <td style={{ fontFamily: 'var(--font-mono)' }}>{product.barcode}</td>
-                    <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{product.stockQuantity} {product.unit}</td>
-                    <td style={{ textAlign: 'center' }}>{product.minStockLevel} {product.unit}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      <span className="badge-tag" style={{
-                        backgroundColor: !product.isActive ? 'var(--light-gray)' : product.stockQuantity <= 0 ? 'var(--error-bg)' : product.stockQuantity <= product.minStockLevel ? 'var(--warning-bg)' : 'var(--light-pink)',
-                        color: !product.isActive ? 'var(--secondary-text)' : product.stockQuantity <= 0 ? 'var(--error)' : product.stockQuantity <= product.minStockLevel ? 'var(--warning)' : 'var(--dark-pink)',
-                      }}>
-                        {!product.isActive ? 'INACTIVE' : product.stockQuantity <= 0 ? 'OUT OF STOCK' : product.stockQuantity <= product.minStockLevel ? 'LOW STOCK' : 'IN STOCK'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {products.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', borderTop: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
-              <span style={{ color: 'var(--secondary-text)', fontSize: '13px' }}>Showing {(allProductsPage - 1) * ALL_PRODUCTS_PER_PAGE + 1}-{Math.min(allProductsPage * ALL_PRODUCTS_PER_PAGE, products.length)} of {products.length} products</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAllProductsPage((page) => Math.max(1, page - 1))} disabled={allProductsPage === 1}>Previous</button>
-                <span style={{ fontSize: '13px', minWidth: '76px', textAlign: 'center' }}>Page {allProductsPage} of {allProductsTotalPages}</span>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAllProductsPage((page) => Math.min(allProductsTotalPages, page + 1))} disabled={allProductsPage === allProductsTotalPages}>Next</button>
-              </div>
-            </div>
-          )}
-        </div>
         <div className="pos-panel">
           <div className="pos-panel-header">
             <span className="pos-panel-title">Low & Depleted Stock Items</span>

@@ -109,9 +109,9 @@ export default function CashDrawerPage({ onSessionChange }) {
     <section className="cash-drawer-page">
       <div className="cash-drawer-header">
         <div>
-          <p className="eyebrow">END-OF-DAY CONTROL</p>
-          <h1>Cash drawer reconciliation</h1>
-          <p>Track the money in the drawer from opening float to closing count.</p>
+          <p className="eyebrow">CASH MANAGEMENT</p>
+          <h1>Cash Drawer</h1>
+          <p>Follow the steps below to start, manage, and close your shift.</p>
         </div>
         <div className="cash-drawer-header-actions">
           <span className={`status-pill ${sessionOpen ? 'status-open' : 'status-closed'}`}>
@@ -132,8 +132,9 @@ export default function CashDrawerPage({ onSessionChange }) {
       )}
 
       {!sessionOpen ? (
-        <div className="pos-panel cash-open-card">
+        <div className="pos-panel cash-open-card cash-step-card">
           <div className="pos-panel-header"><h2>Open today’s drawer</h2></div>
+          <div className="cash-step-note"><strong>Step 1:</strong> Count the cash currently in the drawer, then enter the starting amount.</div>
           <form onSubmit={openDrawer} className="cash-form-row">
             <label>Opening cash
               <input className="form-control" type="number" min="0" step="0.01" value={openingCash} onChange={(event) => setOpeningCash(event.target.value)} placeholder="0.00" required />
@@ -141,7 +142,7 @@ export default function CashDrawerPage({ onSessionChange }) {
             <label>Notes <span className="optional-label">(optional)</span>
               <input className="form-control" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Starting float, shift notes..." />
             </label>
-            <button className="btn btn-primary" type="submit" disabled={saving}>Open drawer</button>
+            <button className="btn btn-primary" type="submit" disabled={saving}>Start Shift</button>
           </form>
         </div>
       ) : (
@@ -154,8 +155,9 @@ export default function CashDrawerPage({ onSessionChange }) {
           </div>
 
           <div className="cash-action-grid">
-            <div className="pos-panel">
+            <div className="pos-panel cash-step-card">
               <div className="pos-panel-header"><h2>Record drawer movement</h2></div>
+              <div className="cash-step-note"><strong>Step 2:</strong> Record money added to or removed from the drawer.</div>
               <form onSubmit={recordMovement} className="cash-form-stack">
                 <div className="cash-toggle-row">
                   <button type="button" className={movementType === 'WITHDRAWAL' ? 'active' : ''} onClick={() => setMovementType('WITHDRAWAL')}>Withdrawal</button>
@@ -163,18 +165,19 @@ export default function CashDrawerPage({ onSessionChange }) {
                 </div>
                 <label>Amount<input className="form-control" type="number" min="0.01" step="0.01" value={movementAmount} onChange={(event) => setMovementAmount(event.target.value)} placeholder="0.00" required /></label>
                 <label>Reason<input className="form-control" value={movementReason} onChange={(event) => setMovementReason(event.target.value)} placeholder="Petty cash, supplier payment..." required /></label>
-                <button className="btn btn-secondary" type="submit" disabled={saving}>Save movement</button>
+                <button className="btn btn-secondary" type="submit" disabled={saving}>Save Cash Movement</button>
               </form>
             </div>
 
-            <div className="pos-panel cash-close-card">
+            <div className="pos-panel cash-close-card cash-step-card">
               <div className="pos-panel-header"><h2>Close and reconcile</h2></div>
+              <div className="cash-step-note"><strong>Step 3:</strong> Count the drawer and compare it with the expected cash before closing.</div>
               <form onSubmit={closeDrawer} className="cash-form-stack">
                 <label>Actual closing cash<input className="form-control" type="number" min="0" step="0.01" value={closingCash} onChange={(event) => setClosingCash(event.target.value)} placeholder="Count the drawer" required /></label>
                 <div className={`variance-preview ${closingCash === '' ? '' : closingVariance === 0 ? 'is-balanced' : closingVariance > 0 ? 'is-over' : 'is-short'}`}>
                   <span>Cashier variance</span><strong>{closingCash === '' ? '—' : formatCurrency(closingVariance)}</strong>
                 </div>
-                <button className="btn btn-primary" type="submit" disabled={saving}>Close drawer</button>
+                <button className="btn btn-primary" type="submit" disabled={saving}>Close Shift</button>
               </form>
             </div>
           </div>

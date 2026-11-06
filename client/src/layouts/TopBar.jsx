@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onToggleTheme, canUsePOS = true }) {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isSuperAdmin } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
@@ -108,7 +108,7 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
       </div>
 
       <nav id="main-navigation" className={`nav-bar ${isNavMenuOpen ? 'is-open' : ''}`}>
-        <button
+        {!isSuperAdmin && <button
           id="nav-pos"
           className={`nav-tab ${activeTab === 'pos' ? 'active' : ''}`}
           onClick={() => handleTabChange('pos')}
@@ -116,9 +116,9 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
           title={canUsePOS ? 'Open Counter POS' : 'Open the cash drawer before using the POS'}
         >
           Counter POS{!canUsePOS ? ' (Open drawer first)' : ''}
-        </button>
+        </button>}
 
-        {isAdmin && (
+        {isAdmin && !isSuperAdmin && (
           <button
             id="nav-products"
             className={`nav-tab ${activeTab === 'products' ? 'active' : ''}`}
@@ -138,7 +138,7 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
           </button>
         )}
 
-        {(isAdmin || user?.role === 'CASHIER') && (
+        {(isAdmin && !isSuperAdmin) || user?.role === 'CASHIER' && (
           <button
             id="nav-transactions"
             className={`nav-tab ${activeTab === 'transactions' ? 'active' : ''}`}
@@ -148,13 +148,13 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
           </button>
         )}
 
-        <button
+        {!isSuperAdmin && <button
           id="nav-cash"
           className={`nav-tab ${activeTab === 'cash' ? 'active' : ''}`}
           onClick={() => handleTabChange('cash')}
         >
           Cash Drawer
-        </button>
+        </button>}
 
         {isAdmin && (
           <button

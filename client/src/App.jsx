@@ -23,7 +23,7 @@ import {
 } from './utils/offlineStore';
 
 export default function App() {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, isSuperAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('mona-active-tab') || 'pos');
   const [cashDrawerOpen, setCashDrawerOpen] = useState(null);
   const [storeInfo, setStoreInfo] = useState(null);
@@ -101,10 +101,14 @@ export default function App() {
   }, [user, isAdmin]);
 
   useEffect(() => {
+    if (user && isSuperAdmin && !['reports', 'inventory', 'settings'].includes(activeTab)) {
+      setActiveTab('reports');
+      return;
+    }
     if (user && !isAdmin && !['pos', 'products', 'cash', 'transactions'].includes(activeTab)) {
       setActiveTab(cashDrawerOpen === false ? 'cash' : 'pos');
     }
-  }, [user, isAdmin, activeTab, cashDrawerOpen]);
+  }, [user, isAdmin, isSuperAdmin, activeTab, cashDrawerOpen]);
 
   useEffect(() => {
     const updateOnlineStatus = () => setIsOnline(navigator.onLine);
@@ -204,17 +208,17 @@ export default function App() {
           </div>
         )}
         <Suspense fallback={<div className="page-state">Loading page...</div>}>
-          {activeTab === 'pos' && (
+          {activeTab === 'pos' && !isSuperAdmin && (
             <CounterPOSPage
               storeInfo={storeInfo}
               cashDrawerOpen={cashDrawerOpen}
               onOpenCashDrawer={() => setActiveTab('cash')}
             />
           )}
-          {activeTab === 'products' && <ProductsPage />}
+          {activeTab === 'products' && !isSuperAdmin && <ProductsPage />}
           {activeTab === 'inventory' && isAdmin && <InventoryPage />}
-          {activeTab === 'transactions' && user && <TransactionsPage storeInfo={storeInfo} />}
-          {activeTab === 'cash' && <CashDrawerPage onSessionChange={setCashDrawerOpen} />}
+          {activeTab === 'transactions' && !isSuperAdmin && user && <TransactionsPage storeInfo={storeInfo} />}
+          {activeTab === 'cash' && !isSuperAdmin && <CashDrawerPage onSessionChange={setCashDrawerOpen} />}
           {activeTab === 'reports' && isAdmin && <ReportsPage />}
           {activeTab === 'settings' && isAdmin && (
             <SettingsPage storeInfo={storeInfo} onStoreUpdate={setStoreInfo} />
