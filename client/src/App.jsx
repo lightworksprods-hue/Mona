@@ -102,7 +102,7 @@ export default function App() {
   }, [user, isAdmin]);
 
   useEffect(() => {
-    if (user && isSuperAdmin && !['reports', 'inventory', 'settings'].includes(activeTab)) {
+    if (user && isSuperAdmin && !['reports', 'inventory', 'transactions', 'settings'].includes(activeTab)) {
       setActiveTab('reports');
       return;
     }
@@ -218,7 +218,7 @@ export default function App() {
           )}
           {activeTab === 'products' && !isSuperAdmin && <ProductsPage />}
           {activeTab === 'inventory' && isAdmin && <InventoryPage />}
-          {activeTab === 'transactions' && !isSuperAdmin && user && <TransactionsPage storeInfo={storeInfo} />}
+          {activeTab === 'transactions' && isAdmin && user && <TransactionsPage storeInfo={storeInfo} />}
           {activeTab === 'cash' && !isSuperAdmin && <CashDrawerPage onSessionChange={setCashDrawerOpen} />}
           {activeTab === 'reports' && isAdmin && <ReportsPage />}
           {activeTab === 'settings' && isAdmin && (

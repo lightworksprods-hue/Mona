@@ -138,7 +138,7 @@ export default function TopBar({ storeInfo, activeTab, setActiveTab, theme, onTo
           </button>
         )}
 
-        {(isAdmin && !isSuperAdmin) || user?.role === 'CASHIER' && (
+        {(isAdmin || user?.role === 'CASHIER') && (
           <button
             id="nav-transactions"
             className={`nav-tab ${activeTab === 'transactions' ? 'active' : ''}`}
