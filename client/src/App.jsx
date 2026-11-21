@@ -32,6 +32,45 @@ export default function App() {
   const [pendingSales, setPendingSales] = useState(() => getPendingSales().length);
   const [failedSales, setFailedSales] = useState(() => getFailedSales().length);
   const [queueVersion, setQueueVersion] = useState(0);
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const [showSubscriptionReminder, setShowSubscriptionReminder] = useState(false);
+  const [subscriptionCountdown, setSubscriptionCountdown] = useState(5);
+
+  useEffect(() => {
+    if (!showSubscriptionReminder || !subscriptionStatus?.overdue) return undefined;
+    setSubscriptionCountdown(5);
+    const timer = setInterval(() => {
+      setSubscriptionCountdown((current) => {
+        if (current <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [showSubscriptionReminder, subscriptionStatus?.overdue]);
+
+  useEffect(() => {
+    if (!user || isSuperAdmin) {
+      setSubscriptionStatus(null);
+      setShowSubscriptionReminder(false);
+      return undefined;
+    }
+    let cancelled = false;
+    const loadSubscriptionStatus = async () => {
+      try {
+        const response = await api.getSubscriptionStatus();
+        if (!cancelled) {
+          setSubscriptionStatus(response.data);
+          setShowSubscriptionReminder(Boolean(response.data?.overdue));
+        }
+      } catch { /* Subscription reminders should not prevent POS access. */ }
+    };
+    loadSubscriptionStatus();
+    const timer = setInterval(loadSubscriptionStatus, 300000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [user, isSuperAdmin]);
 
   useEffect(() => {
     if (!user || isAdmin) return undefined;
@@ -202,6 +241,23 @@ export default function App() {
       />
 
       <main className={`main-viewport ${activeTab === 'pos' ? 'pos-main-viewport' : ''}`}>
+        {showSubscriptionReminder && subscriptionStatus?.overdue && (
+          <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="subscription-reminder-title">
+            <div className="modal-dialog" style={{ maxWidth: '520px' }} onMouseDown={(event) => event.stopPropagation()}>
+              <div className="modal-header">
+                <h2 className="modal-title" id="subscription-reminder-title">Subscription payment overdue</h2>
+              </div>
+              <div className="modal-body">
+                <p>The administrator subscription payment for <strong>{subscriptionStatus.billingMonth}/{subscriptionStatus.billingYear}</strong> has not been recorded.</p>
+                <p style={{ color: 'var(--error)' }}>Payment was due on the {subscriptionStatus.dueDay}th day of the month. Please contact the superadmin to confirm payment.</p>
+                <p style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: 0 }}>
+                  {subscriptionCountdown > 0 ? `Please wait ${subscriptionCountdown} seconds...` : 'You may continue.'}
+                </p>
+              </div>
+              <div className="modal-footer"><button className="btn btn-primary" disabled={subscriptionCountdown > 0} onClick={() => setShowSubscriptionReminder(false)}>{subscriptionCountdown > 0 ? `Continue (${subscriptionCountdown})` : 'Continue'}</button></div>
+            </div>
+          </div>
+        )}
         {failedSales > 0 && (
           <div className="offline-queue-warning">
             <span>{failedSales} offline sale{failedSales === 1 ? '' : 's'} need attention because the server rejected them.</span>

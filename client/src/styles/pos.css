@@ -1745,6 +1745,38 @@ html[data-theme='dark'] .pos-lock-overlay {
   color: var(--secondary-text);
 }
 
+.subscription-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.subscription-form .field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.subscription-form .form-control {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.subscription-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .subscription-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 .input-money {
   padding: 10px 12px;
   font-size: 18px;

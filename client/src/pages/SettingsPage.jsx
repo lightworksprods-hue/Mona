@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function SettingsPage({ storeInfo, onStoreUpdate }) {
   const { isSuperAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('mona-settings-tab') || 'store'); // 'store' | 'users' | 'devices' | 'customers' | 'rewards'
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('mona-settings-tab') || 'store'); // 'store' | 'users' | 'devices' | 'customers' | 'rewards' | 'subscriptions'
   const [formData, setFormData] = useState({
     storeName: '',
     storeAddress: '',
@@ -31,6 +31,10 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [products, setProducts] = useState([]);
   const [rewards, setRewards] = useState([]);
+  const [subscriptionPayments, setSubscriptionPayments] = useState([]);
+  const [subscriptionAdmins, setSubscriptionAdmins] = useState([]);
+  const now = new Date();
+  const [subscriptionForm, setSubscriptionForm] = useState({ adminId: '', amount: '650', billingYear: String(now.getFullYear()), billingMonth: String(now.getMonth() + 1), paidAt: now.toISOString().slice(0, 10), notes: '' });
   const [rewardForm, setRewardForm] = useState({ productId: '', pointsCost: '' });
   const [newUser, setNewUser] = useState({
     username: '',
@@ -64,11 +68,12 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
 
   useEffect(() => {
     localStorage.setItem('mona-settings-tab', activeTab);
-    if (isSuperAdmin && !['store', 'customers'].includes(activeTab)) setActiveTab('store');
+    if (isSuperAdmin && !['store', 'customers', 'subscriptions'].includes(activeTab)) setActiveTab('store');
     if (activeTab === 'users') loadUsers();
     if (activeTab === 'devices') loadDevices();
     if (activeTab === 'customers') loadCustomers();
     if (activeTab === 'rewards') loadRewards();
+    if (activeTab === 'subscriptions') loadSubscriptions();
   }, [activeTab]);
 
   const loadUsers = async () => {
@@ -77,6 +82,30 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
       setUsers(res.data || []);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const loadSubscriptions = async () => {
+    try {
+      const [paymentResponse, userResponse] = await Promise.all([api.getSubscriptionPayments(), api.getUsers()]);
+      const admins = (userResponse.data || []).filter((user) => user.role === 'ADMIN');
+      setSubscriptionPayments(paymentResponse.data || []);
+      setSubscriptionAdmins(admins);
+      setSubscriptionForm((current) => ({ ...current, adminId: current.adminId || admins[0]?.id || '' }));
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to load subscription records');
+    }
+  };
+
+  const handleRecordSubscription = async (event) => {
+    event.preventDefault();
+    setErrorMessage('');
+    try {
+      await api.recordSubscriptionPayment(subscriptionForm);
+      setSuccessMessage('Subscription payment recorded successfully.');
+      loadSubscriptions();
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to record subscription payment');
     }
   };
 
@@ -251,6 +280,12 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
           >
             Store Information
           </button>
+          {isSuperAdmin && <button
+            className={`btn ${activeTab === 'subscriptions' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+            onClick={() => setActiveTab('subscriptions')}
+          >
+            Subscriptions
+          </button>}
           {!isSuperAdmin && <button
             className={`btn ${activeTab === 'users' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
             onClick={() => setActiveTab('users')}
@@ -434,6 +469,27 @@ export default function SettingsPage({ storeInfo, onStoreUpdate }) {
               Save Settings
             </button>
           </form>
+        </div>
+      )}
+
+      {activeTab === 'subscriptions' && isSuperAdmin && (
+        <div className="subscription-layout">
+          <div className="pos-panel">
+            <div className="pos-panel-header"><span className="pos-panel-title">Record monthly payment</span></div>
+            <form onSubmit={handleRecordSubscription} className="subscription-form" style={{ padding: '18px' }}>
+              <p style={{ marginTop: 0 }}>Due every 20th day of the month. The standard plan is ₱650.</p>
+              <label className="field-label">Administrator<select className="form-control" required value={subscriptionForm.adminId} onChange={(e) => setSubscriptionForm({ ...subscriptionForm, adminId: e.target.value })}><option value="">Select administrator</option>{subscriptionAdmins.map((admin) => <option key={admin.id} value={admin.id}>{admin.fullName} ({admin.username})</option>)}</select></label>
+              <label className="field-label">Amount<input className="form-control" type="number" min="0.01" step="0.01" required value={subscriptionForm.amount} onChange={(e) => setSubscriptionForm({ ...subscriptionForm, amount: e.target.value })} /></label>
+              <label className="field-label">Billing month<input className="form-control" type="month" required value={`${subscriptionForm.billingYear}-${String(subscriptionForm.billingMonth).padStart(2, '0')}`} onChange={(e) => { const [year, month] = e.target.value.split('-'); setSubscriptionForm({ ...subscriptionForm, billingYear: year, billingMonth: month }); }} /></label>
+              <label className="field-label">Date paid<input className="form-control" type="date" required value={subscriptionForm.paidAt} onChange={(e) => setSubscriptionForm({ ...subscriptionForm, paidAt: e.target.value })} /></label>
+              <label className="field-label">Notes<textarea className="form-control" rows="2" value={subscriptionForm.notes} onChange={(e) => setSubscriptionForm({ ...subscriptionForm, notes: e.target.value })} /></label>
+              <button className="btn btn-primary" type="submit" style={{ width: '100%', marginTop: '10px' }}>Save payment record</button>
+            </form>
+          </div>
+          <div className="pos-panel">
+            <div className="pos-panel-header"><span className="pos-panel-title">Payment records</span><button className="btn btn-secondary btn-sm" onClick={loadSubscriptions}>Refresh</button></div>
+            <div className="table-container"><table className="pos-table"><thead><tr><th>Administrator</th><th>Billing month</th><th>Amount</th><th>Date paid</th><th>Recorded by</th></tr></thead><tbody>{subscriptionPayments.length === 0 ? <tr><td colSpan="5" className="empty-state">No subscription payments recorded.</td></tr> : subscriptionPayments.map((payment) => <tr key={payment.id}><td><strong>{payment.admin?.fullName}</strong><br /><small>{payment.admin?.username}</small></td><td>{payment.billingMonth}/{payment.billingYear}</td><td>{formatCurrency(payment.amount)}</td><td>{formatDateTime(payment.paidAt)}</td><td>{payment.recordedBy?.fullName || payment.recordedBy?.username}</td></tr>)}</tbody></table></div>
+          </div>
         </div>
       )}
 

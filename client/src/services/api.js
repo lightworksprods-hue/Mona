@@ -117,4 +117,7 @@ export const api = {
   updateSettings: (payload) => request('/settings', { method: 'PUT', body: JSON.stringify(payload) }),
   updateSystemStatus: (systemActive) => request('/system/status', { method: 'PUT', body: JSON.stringify({ systemActive }) }),
   updateLimits: (payload) => request('/settings/limits', { method: 'PUT', body: JSON.stringify(payload) }),
+  getSubscriptionStatus: () => request('/subscription/status'),
+  getSubscriptionPayments: () => request('/subscription/payments'),
+  recordSubscriptionPayment: (payload) => request('/subscription/payments', { method: 'POST', body: JSON.stringify(payload) }),
 };

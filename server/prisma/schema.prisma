@@ -67,8 +67,29 @@ model User {
   refunds            Refund[]
   cashSessions       CashSession[]       @relation("CashSessions")
   cashMovements      CashMovement[]
+  subscriptionPayments SubscriptionPayment[] @relation("AdminSubscriptionPayments")
+  recordedSubscriptionPayments SubscriptionPayment[] @relation("RecordedSubscriptionPayments")
 
   @@map("users")
+}
+
+model SubscriptionPayment {
+  id          String   @id @default(uuid())
+  adminId     String
+  recordedById String
+  amount      Decimal  @db.Decimal(12, 2)
+  paidAt      DateTime @default(now())
+  billingYear Int
+  billingMonth Int
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  admin       User @relation("AdminSubscriptionPayments", fields: [adminId], references: [id], onDelete: Restrict)
+  recordedBy  User @relation("RecordedSubscriptionPayments", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@index([adminId, billingYear, billingMonth])
+  @@index([paidAt])
+  @@map("subscription_payments")
 }
 
 model AuthorizedDevice {
