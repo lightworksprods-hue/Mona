@@ -6,6 +6,11 @@ function formatShortReceiptNumber(transactionNumber) {
   return value.split('-').pop() || value;
 }
 
+function formatCashierName(cashier) {
+  const name = cashier?.fullName || cashier?.username || 'Counter Staff';
+  return name.replace(/\s*\(cashier\)\s*$/i, '');
+}
+
 function getRefundedQuantity(saleData, productId) {
   return (saleData?.refunds || []).reduce((total, refund) => {
     const refundedQuantity = Array.isArray(refund.itemsJson)
@@ -64,15 +69,6 @@ export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onN
         <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
           {/* Strict Text-Based Receipt Paper */}
           <div className={`receipt-paper receipt-paper-${storeInfo?.receiptPaperWidth || '80mm'}`} ref={receiptRef}>
-            <div className="receipt-header">
-              <div className="receipt-store-name">{storeInfo?.storeName || 'COUNTER POS STORE'}</div>
-              <div>{storeInfo?.storeAddress || '123 Market St, Manila'}</div>
-              <div>Tel: {storeInfo?.phone || '+63 900 000 0000'}</div>
-              <div style={{ marginTop: '4px', fontWeight: 'bold' }}>NON-VAT</div>
-            </div>
-
-            <div className="receipt-separator" />
-
             <div className="receipt-row">
               <span>Receipt #:</span>
               <strong>{formatShortReceiptNumber(saleData.transactionNumber)}</strong>
@@ -83,7 +79,7 @@ export default function ReceiptModal({ saleData, storeInfo, isOpen, onClose, onN
             </div>
             <div className="receipt-row">
               <span>Cashier:</span>
-              <span>{saleData.cashier?.fullName || saleData.cashier?.username || 'Counter Staff'}</span>
+              <span>{formatCashierName(saleData.cashier)}</span>
             </div>
 
             {saleData.customer && (
